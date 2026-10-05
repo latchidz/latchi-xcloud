@@ -118,6 +118,8 @@ public sealed class WebViewHost
                 var type = t.GetString();
                 if (type is null) return;
                 string? detail = doc.RootElement.TryGetProperty("detail", out var d) ? d.GetString() : null;
+                // the loader bridge sends {type:'hotkey', key:'F11'} — 'key' is the hotkey payload
+                if (detail is null && doc.RootElement.TryGetProperty("key", out var k)) detail = k.GetString();
                 if (type == "bxc-error") detail = doc.RootElement.TryGetProperty("error", out var err) ? err.GetString() : null;
                 MessageReceived?.Invoke(type, detail);
             }
