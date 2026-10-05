@@ -1,0 +1,26 @@
+# build outputs
+bin/
+obj/
+publish/
+artifacts/
+TestResults/
+
+# installer output
+installer/Output/
+
+# CI scratch
+smoke-data/
+smoke-results.json
+
+# never commit browser profile / user data / logs / secrets
+BrowserProfile/
+*.log
+*.cookies
+*.tmp
+.env
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo

@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{460A7E3C-F99E-4C6F-95C6-DCBC228FFE3F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LatchiXcloud.Core", "src\LatchiXcloud.Core\LatchiXcloud.Core.csproj", "{2FDC8C8C-DCC0-43D8-92A3-60D4475B2309}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LatchiXcloud.App", "src\LatchiXcloud.App\LatchiXcloud.App.csproj", "{63244A09-8065-4787-8BEB-ACFDB0BC96DE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{F6759F4B-E970-41F4-89A8-1FF8B5DC1FBE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LatchiXcloud.Tests", "tests\LatchiXcloud.Tests\LatchiXcloud.Tests.csproj", "{EA26BAC6-0599-4554-A0E6-2D254D9CF745}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2FDC8C8C-DCC0-43D8-92A3-60D4475B2309}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2FDC8C8C-DCC0-43D8-92A3-60D4475B2309}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2FDC8C8C-DCC0-43D8-92A3-60D4475B2309}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2FDC8C8C-DCC0-43D8-92A3-60D4475B2309}.Release|Any CPU.Build.0 = Release|Any CPU
+		{63244A09-8065-4787-8BEB-ACFDB0BC96DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{63244A09-8065-4787-8BEB-ACFDB0BC96DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{63244A09-8065-4787-8BEB-ACFDB0BC96DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{63244A09-8065-4787-8BEB-ACFDB0BC96DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EA26BAC6-0599-4554-A0E6-2D254D9CF745}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EA26BAC6-0599-4554-A0E6-2D254D9CF745}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EA26BAC6-0599-4554-A0E6-2D254D9CF745}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EA26BAC6-0599-4554-A0E6-2D254D9CF745}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2FDC8C8C-DCC0-43D8-92A3-60D4475B2309} = {460A7E3C-F99E-4C6F-95C6-DCBC228FFE3F}
+		{63244A09-8065-4787-8BEB-ACFDB0BC96DE} = {460A7E3C-F99E-4C6F-95C6-DCBC228FFE3F}
+		{EA26BAC6-0599-4554-A0E6-2D254D9CF745} = {F6759F4B-E970-41F4-89A8-1FF8B5DC1FBE}
+	EndGlobalSection
+EndGlobal
