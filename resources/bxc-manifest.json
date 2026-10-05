@@ -1,0 +1,9 @@
+{
+  "Version": "6.7.12",
+  "UpstreamRepo": "redphx/better-xcloud",
+  "UpstreamCommit": "f8397043f6d2148d2345d508902a38c69cf1ee20",
+  "SourceUrl": "https://github.com/redphx/better-xcloud/releases/tag/v6.7.12",
+  "Sha256": "bb78931b4ec94d68cb18da97fa4ae1f88e6b3103bc159905931b2238a51b517e",
+  "DownloadedAt": "2026-10-05 (pinned at implementation time from the official release)",
+  "RunAt": "document-start"
+}
