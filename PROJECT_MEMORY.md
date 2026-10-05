@@ -67,6 +67,13 @@ WebView2 SDK **1.0.4258.31**؛ Runtime = Evergreen المثبت مع ويندو�
 
 GitHub Actions `build.yml`: build → **55 xUnit** → publish (win-x64 self-contained R2R مجلد) → **فحص smoke على exe الإنتاجي** (WebView2 حقيقي + حقن + حجب + جسر) → Inno Setup → بورتبل zip → manifest بصمات → artifact. ⛔ لا Release عام (المواصفة §66) — الأرتيفاكت عبر Actions فقط.
 
+## ⛔ درس حرج: أبداً PushFrame متداخلة مع WebView2 (5 أكتوبر 2026)
+
+أول تشغيل CI علّق 27 دقيقة: فحص الـsmoke كان يضخ **إطارات dispatcher متداخلة** (PushFrame) من داخل OnStartup بينما تكملات WebView2 غير المتزامنة تتنافس على نفس الـdispatcher → جمود دائم + `Start-Process -Wait` بلا سقف. الحل النهائي (لا تعد عنه):
+1. الـsmoke يعمل كتدفق async واحد على **دورة رسائل التطبيق الحقيقية** (OnStartup يوزّع RunAsync ويعود؛ Application.Run يضخ طبيعياً).
+2. **watchdog داخلي** يقتل العملية بعد 8 دقائق مهما حدث (Environment.Exit(1)).
+3. الـworkflow: `Wait-Process -Timeout 600` ثم kill — لا انتظار غير محدود أبداً.
+
 ## Known Issues
 
 1. التفاعلات الحقيقية (تسجيل دخول Microsoft، إطلاق لعبة، streaming، يد تحكم فعلية، صوت) **غير قابلة للاختبار في CI** — تم التحقق برمجياً مما يمكن، والباقي NOT TESTED بصدق في مصفوفة الاختبار
