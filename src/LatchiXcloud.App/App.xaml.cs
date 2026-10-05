@@ -1,4 +1,6 @@
+using System.IO;
 using System.Windows;
+using System.Windows.Threading;
 using LatchiXcloud.App.Smoke;
 using LatchiXcloud.App.Views;
 using LatchiXcloud.Core.Services;
@@ -10,18 +12,50 @@ public partial class App : Application
     public static bool IsSmokeMode { get; private set; }
     public static string AppVersion => typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.1.0";
 
+    /// <summary>Hard ceiling for the smoke run — CI must NEVER hang on us (8 min).</summary>
+    private System.Threading.Timer? _smokeWatchdog;
+    private volatile bool _smokeDone;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         DispatcherUnhandledException += App_DispatcherUnhandledException;
 
         if (SmokeRunner.ShouldRun(e.Args))
         {
-            // No window is ever created in smoke mode: Shutdown(exitCode) is the last
-            // word on the process exit code (lesson from the teleprompter project —
-            // never combine this with StartupUri).
             IsSmokeMode = true;
-            var exitCode = SmokeRunner.Run();
-            Shutdown(exitCode);
+
+            // watchdog on a background thread: if the smoke flow ever stalls,
+            // kill the process with a failure code instead of hanging the runner
+            _smokeWatchdog = new System.Threading.Timer(_ =>
+            {
+                if (_smokeDone) return;
+                try
+                {
+                    var outPath = Environment.GetEnvironmentVariable("LATCHI_SMOKE_OUT");
+                    if (!string.IsNullOrEmpty(outPath))
+                        File.AppendAllText(outPath, "\n{\"watchdog\": \"smoke exceeded 8 minutes — killed\"}\n");
+                }
+                catch { }
+                Environment.Exit(1);
+            }, null, TimeSpan.FromMinutes(8), System.Threading.Timeout.InfiniteTimeSpan);
+
+            // Run the smoke as ONE async flow on the REAL application message loop:
+            // OnStartup returns, Application.Run pumps, every await resumes naturally.
+            // (Do NOT block or call Shutdown inside OnStartup in smoke mode.)
+            Dispatcher.InvokeAsync(async () =>
+            {
+                var exitCode = 1;
+                try { exitCode = await SmokeRunner.RunAsync(); }
+                catch { exitCode = 2; }
+                finally
+                {
+                    _smokeDone = true;
+                    _smokeWatchdog?.Dispose();
+                    Shutdown(exitCode);
+                }
+            });
+
+            base.OnStartup(e); // no StartupUri in XAML → nothing else opens
             return;
         }
 
@@ -33,15 +67,16 @@ public partial class App : Application
         var main = new MainWindow();
         MainWindow = main;
         main.Closed += (_, _) => Shutdown();
-        if (MainWindow is { } win) win.Show();
+        main.Show();
     }
 
-    private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+    private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         e.Handled = true;
         Logger.Error("Unhandled exception: " + e.Exception);
         if (IsSmokeMode)
         {
+            _smokeDone = true;
             Shutdown(2);
             return;
         }

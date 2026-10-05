@@ -1,12 +1,10 @@
 using System.IO;
 using System.Windows;
-using System.Windows.Threading;
 using LatchiXcloud.App.WebView;
 using LatchiXcloud.Core.Security;
 using LatchiXcloud.Core.Services;
 using LatchiXcloud.Core.Userscript;
 using LatchiXcloud.Core.Versioning;
-using Microsoft.Web.WebView2.Wpf;
 
 namespace LatchiXcloud.App.Smoke;
 
@@ -15,6 +13,11 @@ namespace LatchiXcloud.App.Smoke;
 /// data dir and validates everything that can be validated WITHOUT a Microsoft
 /// account or a live game stream. Anything requiring real login/streaming is
 /// explicitly reported as NOT TESTED — never faked.
+///
+/// Runs as ONE async flow on the application's real message loop (App.OnStartup
+/// dispatches RunAsync and returns; Application.Run pumps everything naturally).
+/// A hard watchdog in App kills the process after 8 minutes no matter what —
+/// CI can never hang on this test.
 /// </summary>
 public static class SmokeRunner
 {
@@ -30,7 +33,7 @@ public static class SmokeRunner
     public static bool ShouldRun(string[] args) =>
         args.Any(a => string.Equals(a, "--smoke", StringComparison.OrdinalIgnoreCase));
 
-    public static int Run()
+    public static async Task<int> RunAsync()
     {
         string dataDir = "";
         try
@@ -42,7 +45,7 @@ public static class SmokeRunner
             Environment.SetEnvironmentVariable("LATCHI_XCLOUD_DATA", dataDir);
             Logger.Init(Path.Combine(dataDir, "Logs"));
 
-            RunCore(dataDir);
+            await RunCoreAsync(dataDir);
         }
         catch (Exception ex)
         {
@@ -71,7 +74,7 @@ public static class SmokeRunner
     private static void Add(string name, bool pass, string detail = "") =>
         Checks.Add(new Check { Name = name, Pass = pass, Detail = detail });
 
-    private static void RunCore(string dataDir)
+    private static async Task RunCoreAsync(string dataDir)
     {
         /* ── S1: settings persistence ─────────────────────────────────── */
         var settings = new SettingsStore(dataDir);
@@ -138,9 +141,9 @@ public static class SmokeRunner
             Path.Combine(dataDir, "BxC", "active"),
             Path.Combine(dataDir, "BxC", "previous"));
         svc.Bootstrap(bundledPath, bundledManifest!);
-        var latest = svc.CheckLatestAsync().GetAwaiter().GetResult();
+        var latest = await svc.CheckLatestAsync();
         Add("S6 check", latest is { Version: "9.9.9" }, $"latest={latest?.Version}");
-        svc.DownloadAndStageAsync(latest!).GetAwaiter().GetResult();
+        await svc.DownloadAndStageAsync(latest!);
         Add("S6 staged", svc.PeekStaged() is { Version: "9.9.9" });
         var activated = svc.ActivateStaged();
         var activeAfter = svc.LoadActiveManifest();
@@ -148,88 +151,73 @@ public static class SmokeRunner
         svc.MarkBad("9.9.9");
         var rolled = svc.Rollback();
         Add("S6 rollback+bad", rolled.Version == "6.7.12" && svc.IsBadVersion("9.9.9"));
-        svc.DownloadAndStageAsync(latest!).GetAwaiter().GetResult();
+        await svc.DownloadAndStageAsync(latest!);
         var refused = false;
         try { svc.ActivateStaged(); }
         catch (InvalidOperationException) { refused = true; }
         Add("S6 bad version refused", refused);
 
-        // tampered download must be rejected
         fake.Tamper = true;
         var bad = false;
-        try { svc.DownloadAndStageAsync(latest!).GetAwaiter().GetResult(); }
+        try { await svc.DownloadAndStageAsync(latest!); }
         catch (InvalidOperationException) { bad = true; }
         Add("S6 tampered rejected", bad);
         fake.Tamper = false;
 
-        // non-official URL refused
         var evilUrl = false;
-        try { svc.DownloadAndStageAsync(new Core.Updates.ReleaseInfo("8.8.8", "https://evil.io/bx.user.js", "", "")).GetAwaiter().GetResult(); }
+        try { await svc.DownloadAndStageAsync(new Core.Updates.ReleaseInfo("8.8.8", "https://evil.io/bx.user.js", "", "")); }
         catch (InvalidOperationException) { evilUrl = true; }
         Add("S6 non-official URL refused", evilUrl);
 
-        /* ── S7: REAL WebView2 + loader injection ────────────────────── */
+        /* ── S7: REAL WebView2 + loader injection (natural message loop) ── */
         var loader = LoaderJs.Build(meta, source);
-        WebView2? wv = null;
-        WebViewHost? host = null;
-        string? hotkeySeen = null;
+        var smokeWin = new Window { Width = 700, Height = 500, ShowInTaskbar = false, WindowStyle = WindowStyle.None };
+        var wv = new Microsoft.Web.WebView2.Wpf.WebView2
+        { DefaultBackgroundColor = System.Drawing.Color.FromArgb(255, 10, 13, 20) };
+        smokeWin.Content = wv;
+        smokeWin.Show();
+
+        var host = new WebViewHost(wv);
         string? blockedSeen = null;
-        Window? smokeWin = null;
-
-        RunOnUi(() =>
-        {
-            smokeWin = new Window { Width = 700, Height = 500, ShowInTaskbar = false, WindowStyle = WindowStyle.None };
-            wv = new WebView2 { DefaultBackgroundColor = System.Drawing.Color.FromArgb(255, 10, 13, 20) };
-            smokeWin.Content = wv;
-            smokeWin.Show();
-        });
-
         var hotkeyTcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        RunOnUi(() =>
-        {
-            host = new WebViewHost(wv!);
-            host.MessageReceived += (type, detail) => { if (type == "hotkey") hotkeyTcs.TrySetResult(detail); };
-            host.NavigationBlocked += url => blockedSeen = url;
-        });
-        RunAsyncOnUi(() => host!.InitializeAsync(loader));
-        Add("S7 webview2 init", host!.RuntimeVersion.Length > 0, "runtime " + host.RuntimeVersion);
+        var blockedTcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        host.MessageReceived += (type, detail) => { if (type == "hotkey") hotkeyTcs.TrySetResult(detail); };
+        host.NavigationBlocked += url => { blockedSeen = url; blockedTcs.TrySetResult(url); };
+
+        await host.InitializeAsync(loader);
+        Add("S7 webview2 init", host.RuntimeVersion.Length > 0, "runtime " + host.RuntimeVersion);
 
         var navTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        RunOnUi(() =>
-        {
-            wv!.CoreWebView2!.NavigationCompleted += (_, e) => navTcs.TrySetResult(e.IsSuccess);
-            wv!.CoreWebView2.NavigateToString(
-                "<html><body><h1>smoke</h1></body></html>");
-        });
-        PumpUntil(navTcs.Task, 30);
-        PumpMs(500);
+        wv.CoreWebView2!.NavigationCompleted += (_, e) => navTcs.TrySetResult(e.IsSuccess);
+        wv.CoreWebView2.NavigateToString("<html><body><h1>smoke</h1></body></html>");
+        var navOk = await Task.WhenAny(navTcs.Task, Task.Delay(TimeSpan.FromSeconds(30))) == navTcs.Task;
+        Add("S7 test page loaded", navOk, navOk ? "ok" : "timeout");
+        await Task.Delay(400);
 
-        var marker = RunScript(wv!, "window.__LATCHI ? 'loader-ok' : 'loader-missing'");
+        var marker = await wv.CoreWebView2.ExecuteScriptAsync("window.__LATCHI ? 'loader-ok' : 'loader-missing'");
         Add("S7 loader injected", marker.Contains("loader-ok"), marker);
 
-        var probe = RunScript(wv!, "window.__LATCHI_PROBE ? window.__LATCHI_PROBE() : 'missing'");
+        var probe = await wv.CoreWebView2.ExecuteScriptAsync("window.__LATCHI_PROBE ? window.__LATCHI_PROBE() : 'missing'");
         // BxC must NOT have run on this non-xbox document — the match guard held
         Add("S7 probe + BxC correctly not run on non-xbox page",
             probe.Contains("bxc") && probe.Contains("false"), probe);
 
-        var jsTest = RunScript(wv!, BuildJsMatcherTest(meta));
+        var jsTest = await wv.CoreWebView2.ExecuteScriptAsync(BuildJsMatcherTest(meta));
         Add("S7 js matcher (real engine)", jsTest.Contains("ALL-OK"), jsTest.Trim());
 
         // hotkey bridge: dispatch F11 inside the page → the host must receive it
-        RunAsyncOnUi(async () =>
-            await wv!.CoreWebView2!.ExecuteScriptAsync(
-                "document.dispatchEvent(new KeyboardEvent('keydown', {key:'F11', bubbles:true}));"));
-        hotkeySeen = PumpUntil(hotkeyTcs.Task, 10);
+        await wv.CoreWebView2.ExecuteScriptAsync(
+            "document.dispatchEvent(new KeyboardEvent('keydown', {key:'F11', bubbles:true}));");
+        var hotkeySeen = await Task.WhenAny(hotkeyTcs.Task, Task.Delay(TimeSpan.FromSeconds(10))) == hotkeyTcs.Task
+            ? await hotkeyTcs.Task : null;
         Add("S7 hotkey bridge", hotkeySeen == "F11", "received=" + (hotkeySeen ?? "nothing"));
 
         /* ── S8: live blocked navigation (real network event) ────────── */
         if (System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
         {
-            RunOnUi(() => wv!.CoreWebView2!.Navigate("https://example.com/"));
-            var sw = System.Diagnostics.Stopwatch.StartNew();
-            while (blockedSeen is null && sw.Elapsed < TimeSpan.FromSeconds(25))
-                PumpMs(250);
-            Add("S8 blocked navigation", blockedSeen is not null,
+            wv.CoreWebView2.Navigate("https://example.com/");
+            var blocked = await Task.WhenAny(blockedTcs.Task, Task.Delay(TimeSpan.FromSeconds(25))) == blockedTcs.Task;
+            Add("S8 blocked navigation", blocked && blockedSeen is not null,
                 "blocked=" + Logger.SafeUrl(blockedSeen));
         }
         else
@@ -237,8 +225,8 @@ public static class SmokeRunner
             Add("S8 blocked navigation", true, "skipped — no network (NOT TESTED live)");
         }
 
-        RunOnUi(() => smokeWin!.Close());
-        PumpMs(300);
+        smokeWin.Close();
+        await Task.Delay(300);
     }
 
     /// <summary>JS that re-tests the generated @match regexes inside the real engine.</summary>
@@ -261,58 +249,6 @@ $@"(function () {{
 }})()";
     }
 
-    /* ── UI-thread helpers ───────────────────────────────────────────── */
-    // Smoke runs ON the dispatcher thread; blocking waits would deadlock the
-    // async WebView2 continuations, so every wait pumps dispatcher frames.
-
-    private static void RunOnUi(Action action) => Application.Current.Dispatcher.Invoke(action);
-
-    /// <summary>Runs an async block on the UI thread, pumping frames until it finishes.</summary>
-    private static void RunAsyncOnUi(Func<Task> work)
-    {
-        var outer = Application.Current.Dispatcher.InvokeAsync(() => work());
-        PumpUntil(outer.Task.Unwrap(), 180);
-    }
-
-    private static string RunScript(WebView2 wv, string js)
-    {
-        var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        RunAsyncOnUi(async () => tcs.TrySetResult(await wv.CoreWebView2!.ExecuteScriptAsync(js)));
-        return tcs.Task.IsCompleted ? tcs.Task.Result : "(timeout)";
-    }
-
-    /// <summary>Pumps dispatcher frames until the task completes or the timeout hits.</summary>
-    private static void PumpUntil(Task task, int seconds)
-    {
-        if (task.IsCompleted) return;
-        var frame = new DispatcherFrame();
-        var timer = new DispatcherTimer(DispatcherPriority.SystemIdle)
-        { Interval = TimeSpan.FromSeconds(seconds) };
-        timer.Tick += (_, _) => frame.Continue = false;
-        timer.Start();
-        task.ContinueWith(_ =>
-            Application.Current.Dispatcher.BeginInvoke(() => frame.Continue = false));
-        Dispatcher.PushFrame(frame);
-        timer.Stop();
-    }
-
-    private static T PumpUntil<T>(Task<T> task, int seconds)
-    {
-        PumpUntil((Task)task, seconds);
-        return task.IsCompleted ? task.Result : default!;
-    }
-
-    /// <summary>Pumps dispatcher frames for a fixed duration.</summary>
-    private static void PumpMs(int ms)
-    {
-        var frame = new DispatcherFrame();
-        var timer = new DispatcherTimer(DispatcherPriority.SystemIdle)
-        { Interval = TimeSpan.FromMilliseconds(ms) };
-        timer.Tick += (_, _) => { frame.Continue = false; timer.Stop(); };
-        timer.Start();
-        Dispatcher.PushFrame(frame);
-    }
-
     /// <summary>Fake official source: serves the shipped script as "9.9.9" from the
     /// official URL; can be told to tamper with content.</summary>
     private sealed class FakeSource : Core.Updates.IFileSource
@@ -328,7 +264,7 @@ $@"(function () {{
                 throw new InvalidOperationException("unofficial url");
             var path = Path.Combine(AppContext.BaseDirectory, "resources", "better-xcloud.user.js");
             var text = await File.ReadAllTextAsync(path);
-            if (Tamper) text = text.Replace("Better xCloud", "EvilClone", StringComparison.Ordinal);
+            if (Tamper) text = text.Replace("Better xCloud", "EvilClone");
             // pretend this is 9.9.9 so the version check passes
             text = text.Replace("// @version      6.7.12", "// @version      9.9.9");
             return System.Text.Encoding.UTF8.GetBytes(text);

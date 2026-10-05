@@ -55,7 +55,7 @@ jobs:
             Start-Process -FilePath $exe -ArgumentList "/silent /install" -Wait
           }
 
-      - name: Smoke test the PRODUCTION exe
+      - name: Smoke test the PRODUCTION exe (10-min hard ceiling)
         shell: pwsh
         run: |
           $exe = Join-Path $PWD 'publish\LATCHI-xCLOUD.exe'
@@ -63,13 +63,15 @@ jobs:
           Get-ChildItem publish -Filter *.exe | Select-Object Name, Length | Format-Table | Out-String | Write-Host
           $env:LATCHI_XCLOUD_DATA = Join-Path $PWD 'smoke-data'
           $env:LATCHI_SMOKE_OUT    = Join-Path $PWD 'smoke-results.json'
-          try {
-            $p = Start-Process -FilePath $exe -ArgumentList '--smoke' -Wait -PassThru
-            $code = $p.ExitCode
-          } catch {
-            Write-Host "LAUNCH ERROR: $_"
-            exit 42
+          $p = Start-Process -FilePath $exe -ArgumentList '--smoke' -PassThru
+          # NEVER wait unbounded: 10-minute ceiling, then kill and fail
+          Wait-Process -Id $p.Id -Timeout 600 -ErrorAction SilentlyContinue
+          if (-not $p.HasExited) {
+            Write-Host "SMOKE HUNG — killing after 10 minutes"
+            Stop-Process -Id $p.Id -Force
+            exit 90
           }
+          $code = $p.ExitCode
           if (Test-Path .\smoke-results.json) {
             Write-Host "── smoke-results.json ──"
             Get-Content .\smoke-results.json
