@@ -1,0 +1,114 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-x64:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build (Release)
+        run: dotnet build -c Release
+
+      - name: Unit tests (Core — 55 tests)
+        run: dotnet test -c Release --no-build --logger "console;verbosity=normal"
+
+      - name: Publish (win-x64, self-contained, ReadyToRun)
+        run: >
+          dotnet publish src/LatchiXcloud.App/LatchiXcloud.App.csproj
+          -c Release -r win-x64 --self-contained true -p:ReadyToRun=true
+          -p:PublishSingleFile=false -o publish
+
+      - name: Resolve version from tag
+        shell: pwsh
+        run: |
+          $v = "${env:GITHUB_REF_NAME}" -replace '^v',''
+          if ([string]::IsNullOrWhiteSpace($v) -or $v -notmatch '^\d+\.\d+\.\d+') { $v = '0.1.0' }
+          "VERSION=$v" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Host "Version: $v"
+
+      - name: Ensure WebView2 Runtime (for the smoke test)
+        shell: pwsh
+        run: |
+          $installed = Test-Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" -ErrorAction SilentlyContinue
+          $installed2 = Test-Path "HKCU:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" -ErrorAction SilentlyContinue
+          if ($installed -or $installed2) {
+            Write-Host "WebView2 Runtime present (preinstalled)"
+          } else {
+            Write-Host "Installing WebView2 Evergreen Runtime (official Microsoft bootstrapper)…"
+            $exe = "$env:TEMP\MicrosoftEdgeWebview2Setup.exe"
+            Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/p/?LinkId=2124703" -OutFile $exe
+            Start-Process -FilePath $exe -ArgumentList "/silent /install" -Wait
+          }
+
+      - name: Smoke test the PRODUCTION exe
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD 'publish\LATCHI-xCLOUD.exe'
+          Write-Host "exe exists: $(Test-Path $exe)"
+          Get-ChildItem publish -Filter *.exe | Select-Object Name, Length | Format-Table | Out-String | Write-Host
+          $env:LATCHI_XCLOUD_DATA = Join-Path $PWD 'smoke-data'
+          $env:LATCHI_SMOKE_OUT    = Join-Path $PWD 'smoke-results.json'
+          try {
+            $p = Start-Process -FilePath $exe -ArgumentList '--smoke' -Wait -PassThru
+            $code = $p.ExitCode
+          } catch {
+            Write-Host "LAUNCH ERROR: $_"
+            exit 42
+          }
+          if (Test-Path .\smoke-results.json) {
+            Write-Host "── smoke-results.json ──"
+            Get-Content .\smoke-results.json
+          }
+          if ($code -ne 0) { Write-Host "SMOKE FAILED (exit $code)"; exit $code }
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { $iscc = "$env:ProgramFiles\Inno Setup 6\ISCC.exe" }
+          & $iscc /DMyAppVersion=$env:VERSION installer\latchi-xcloud.iss
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          Get-ChildItem installer\Output
+
+      - name: Portable zip + SHA-256 manifest
+        shell: pwsh
+        run: |
+          $zip = "LATCHI-xCLOUD-$env:VERSION-portable-win-x64.zip"
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          Compress-Archive -Path publish\* -DestinationPath $zip
+          Move-Item $zip artifacts\
+          Move-Item installer\Output\LATCHI-xCLOUD-$env:VERSION-x64-Setup.exe artifacts\
+          Copy-Item smoke-results.json artifacts\
+          $lines = @("LATCHI xCLOUD v$env:VERSION — win-x64 artifacts", "Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') UTC-local", "")
+          Get-ChildItem artifacts | ForEach-Object {
+            $h = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+            $lines += ("{0}  {1,12:N0} bytes  {2}" -f $h, $_.Length, $_.Name)
+          }
+          $lines | Out-File artifacts\artifact-manifest.txt -Encoding utf8
+          Get-Content artifacts\artifact-manifest.txt
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: latchi-xcloud-v${{ env.VERSION }}-win-x64
+          path: artifacts
+          if-no-files-found: error
+          retention-days: 90
