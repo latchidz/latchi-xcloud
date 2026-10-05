@@ -1,0 +1,13 @@
+LATCHI xCLOUD
+Copyright (c) 2026 LATCHI. All rights reserved.
+
+This host application and its source code are proprietary to LATCHI.
+Third-party components shipped alongside retain their own licenses —
+see THIRD_PARTY_LICENSES.md:
+
+  • Better xCloud (userscript, MIT) by redphx — integrated unmodified
+  • Microsoft Edge WebView2 Runtime — used as installed on the user's
+    machine, not redistributed
+
+LATCHI xCLOUD is an independent project and is not affiliated with
+Microsoft or Xbox.
