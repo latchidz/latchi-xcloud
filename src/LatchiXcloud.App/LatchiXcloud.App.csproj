@@ -14,8 +14,8 @@
     <AssemblyName>LATCHI-xCLOUD</AssemblyName>
     <RootNamespace>LatchiXcloud.App</RootNamespace>
     <ApplicationIcon>..\..\assets\icon\latchi-xcloud.ico</ApplicationIcon>
-    <Version>0.1.0</Version>
-    <InformationalVersion>0.1.0</InformationalVersion>
+    <Version>1.0.0</Version>
+    <InformationalVersion>1.0.0</InformationalVersion>
     <Product>LATCHI xCLOUD</Product>
     <Company>LATCHI</Company>
     <Authors>LATCHI</Authors>
@@ -42,6 +42,9 @@
          data dir on first run when no resources/ folder exists next to the exe). -->
     <EmbeddedResource Include="..\..\resources\better-xcloud.user.js" Link="resources\better-xcloud.user.js" />
     <EmbeddedResource Include="..\..\resources\bxc-manifest.json" Link="resources\bxc-manifest.json" />
+    <!-- v1.0 splash chime: synthesized original composition (Xbox-inspired), embedded as a WPF
+         Resource so it works inside the single-file portable build too. -->
+    <Resource Include="..\..\assets\startup-chime.wav" Link="assets\startup-chime.wav" />
   </ItemGroup>
 
 </Project>

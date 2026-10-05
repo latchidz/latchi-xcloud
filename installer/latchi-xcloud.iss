@@ -2,13 +2,13 @@
 ; Per-user install (NO admin rights), x64 only. User data lives under
 ; %LOCALAPPDATA%\LATCHI\xCLOUD and is NEVER touched on uninstall.
 ;
-; Build:  ISCC /DMyAppVersion=0.1.0 installer\latchi-xcloud.iss
+; Build:  ISCC /DMyAppVersion=1.0.0 installer\latchi-xcloud.iss
 ; Expects the self-contained publish output in ..\publish\
 
 #define MyAppName "LATCHI xCLOUD"
 #define MyAppExeName "LATCHI-xCLOUD.exe"
 #ifndef MyAppVersion
-#define MyAppVersion "0.1.0"
+#define MyAppVersion "1.0.0"
 #endif
 
 [Setup]

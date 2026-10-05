@@ -92,6 +92,16 @@ public static class LoaderJs
     }
   }, true);
 
+  // ── top-edge reporter: reveals the floating exit-fullscreen chip while in host fullscreen ──
+  // (throttled — one message at most every 400 ms, nothing while the user just plays)
+  var lastTop = 0;
+  document.addEventListener('mousemove', function (e) {
+    if (e.clientY < 6 && (Date.now() - lastTop) > 400) {
+      lastTop = Date.now();
+      post({ type: 'mouse-top' });
+    }
+  }, true);
+
   // ── Better xCloud state probe (called by the host — no polling loops) ──
   window.__LATCHI_PROBE = function () {
     return JSON.stringify({ bxc: !!window.BX_EXPOSED });

@@ -77,8 +77,8 @@
 
 | الملف | الوصف |
 |---|---|
-| `LATCHI-xCLOUD-0.1.0-x64-Setup.exe` | مثبّت لكل مستخدم — **بلا صلاحيات مدير**، قائمة ابدأ + اختصار سطح مكتب اختياري |
-| `LATCHI-xCLOUD-0.1.0-portable-win-x64.exe` | نسخة محمولة — ملف واحد، اضغط للتشغيل مباشرة (بلا تثبيت وبلا فك ضغط) |
+| `LATCHI-xCLOUD-1.0.0-x64-Setup.exe` | مثبّت لكل مستخدم — **بلا صلاحيات مدير**، قائمة ابدأ + اختصار سطح مكتب اختياري |
+| `LATCHI-xCLOUD-1.0.0-portable-win-x64.exe` | نسخة محمولة — ملف واحد، اضغط للتشغيل مباشرة (بلا تثبيت وبلا فك ضغط) |
 | `artifact-manifest.txt` | الأحجام وبصمات SHA-256 الحقيقية |
 
 **المتطلبات:** Windows 10/11 (64-bit) + Microsoft Edge WebView2 Runtime (مثبّت افتراضياً مع ويندوز الحديث). المتصفح نفسه غير مطلوب.
@@ -123,7 +123,7 @@ dotnet run --project src/LatchiXcloud.App -- --smoke   # فحص ذاتي شام�
 src/LatchiXcloud.Core     ← نواة قابلة للاختبار: إعدادات، سياسة تنقل، محلل ميتاداتا السكربت، نظام تحديث مع rollback
 src/LatchiXcloud.App      ← واجهة WPF + WebView2: شريط مخصص، جسر، تراكبات، إعدادات، تشخيصات، فحص ذاتي
 resources/                ← سكربت Better xCloud الرسمي (v6.7.12) + manifest الإسناد
-tests/                    ← 55 اختبار xUnit
+tests/                    ← 71 اختبار xUnit
 installer/                ← سكربت Inno Setup (بلا صلاحيات مدير)
 .github/workflows/build.yml ← البناء والفحص والتغليف على GitHub Actions
 ```

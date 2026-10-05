@@ -5,9 +5,14 @@ public sealed class AppSettings
 {
     // Application
     public bool StartMaximized { get; set; } = true;
-    public bool StartFullscreen { get; set; }
+    public bool StartFullscreen { get; set; } = true;      // v1.0: straight into fullscreen after setup
     public string Language { get; set; } = "ar";           // "ar" | "en"
     public bool StartOnHome { get; set; } = true;          // always open xCloud home
+    public bool PlayStartupSound { get; set; } = true;     // v1.0 splash chime
+
+    // v1.0 first-run wizard: language → Microsoft sign-in → cloud
+    public bool FirstRunComplete { get; set; } = false;
+    public string KeepSessionOnExit { get; set; } = "ask"; // "ask" | "keep" | "signout"
 
     // Performance
     public bool LowEndMode { get; set; } = false;          // 4 GB RAM profile

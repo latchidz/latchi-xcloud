@@ -2,13 +2,55 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using LatchiXcloud.App.Theme;
 
 namespace LatchiXcloud.App.Views;
 
-/// <summary>Small dark dialogs built in code — Alert / Confirm (RTL, navy+gold).</summary>
+/// <summary>Small dark dialogs built in code — Alert / Confirm / KeepSession (navy+gold).</summary>
 public static class Dialogs
 {
     private static Window OwnerOf(Window? owner) => owner ?? Application.Current?.MainWindow ?? new Window();
+
+    /// <summary>The exit question: "keep your account signed in?" (v1.0).
+    /// Returns (keep, remember) — or null when dismissed without a choice (treated as keep: we
+    /// never wipe a login session without an explicit request).</summary>
+    public static (bool Keep, bool Remember)? KeepSession(Window? owner, string lang)
+    {
+        (bool Keep, bool Remember)? result = null;
+        var win = Base(500, Loc.S(lang, "keepTitle"));
+        var sp = new StackPanel { Margin = new Thickness(24) };
+
+        sp.Children.Add(new TextBlock
+        {
+            Text = Loc.S(lang, "keepMessage"),
+            Foreground = Brushes.White, FontSize = 13.5, TextWrapping = TextWrapping.Wrap,
+        });
+
+        var remember = new CheckBox
+        {
+            Content = Loc.S(lang, "keepRemember"),
+            Foreground = Res("BrushMuted"), FontSize = 12, Margin = new Thickness(0, 14, 0, 4),
+            Cursor = Cursors.Hand, Focusable = false,
+        };
+        sp.Children.Add(remember);
+
+        var row = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 12, 0, 0),
+        };
+        row.Children.Add(MkBtn(Loc.S(lang, "keepYes"), () => { result = (true, remember.IsChecked == true); win.Close(); }, primary: true, w: 200));
+        row.Children.Add(MkBtn(Loc.S(lang, "keepNo"), 200, 34, () => { result = (false, remember.IsChecked == true); win.Close(); }));
+        sp.Children.Add(row);
+
+        win.Content = sp;
+        win.Owner = OwnerOf(owner);
+        win.ShowDialog();
+        return result;
+    }
+
+    public static ControlTemplate ButtonTemplate() => MkBtnTemplate();
 
     public static void Alert(Window? owner, string message, string title)
     {
@@ -68,8 +110,8 @@ public static class Dialogs
         FontFamily = new FontFamily("Segoe UI"),
     };
 
-    private static Button MkBtn(string text, Action onClick, bool primary = false)
-        => MkBtn(text, 84, 34, onClick, primary);
+    private static Button MkBtn(string text, Action onClick, bool primary = false, double w = 84)
+        => MkBtn(text, w, 34, onClick, primary);
 
     private static Button MkBtn(string text, double w, double h, Action onClick, bool primary = false)
     {

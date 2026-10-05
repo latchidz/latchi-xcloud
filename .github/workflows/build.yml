@@ -35,7 +35,7 @@ jobs:
       - name: Build (Release)
         run: dotnet build -c Release
 
-      - name: Unit tests (Core — 55 tests)
+      - name: Unit tests (Core — 71 tests)
         run: dotnet test -c Release --no-build --logger "console;verbosity=normal"
 
       - name: Publish (win-x64, self-contained, ReadyToRun)
@@ -44,19 +44,11 @@ jobs:
           -c Release -r win-x64 --self-contained true -p:ReadyToRun=true
           -p:PublishSingleFile=false -o publish
 
-      - name: Publish portable single-exe (win-x64, self-contained, compressed bundle)
-        run: >
-          dotnet publish src/LatchiXcloud.App/LatchiXcloud.App.csproj
-          -c Release -r win-x64 --self-contained true
-          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
-          -p:EnableCompressionInSingleFile=true -p:PublishReadyToRun=false
-          -o publish-portable
-
       - name: Resolve version from tag
         shell: pwsh
         run: |
           $v = "${env:GITHUB_REF_NAME}" -replace '^v',''
-          if ([string]::IsNullOrWhiteSpace($v) -or $v -notmatch '^\d+\.\d+\.\d+') { $v = '0.1.0' }
+          if ([string]::IsNullOrWhiteSpace($v) -or $v -notmatch '^\d+\.\d+\.\d+') { $v = '1.0.0' }
           "VERSION=$v" | Out-File -FilePath $env:GITHUB_ENV -Append
           Write-Host "Version: $v"
 
@@ -97,28 +89,6 @@ jobs:
           }
           if ($code -ne 0) { Write-Host "SMOKE FAILED (exit $code)"; exit $code }
 
-      - name: Smoke test the PORTABLE single-exe (10-min hard ceiling)
-        shell: pwsh
-        run: |
-          $exe = Join-Path $PWD 'publish-portable\LATCHI-xCLOUD.exe'
-          Write-Host "portable exe exists: $(Test-Path $exe)"
-          $env:LATCHI_XCLOUD_DATA = Join-Path $PWD 'smoke-data-portable'
-          $env:LATCHI_SMOKE_OUT    = Join-Path $PWD 'smoke-results-portable.json'
-          $p = Start-Process -FilePath $exe -ArgumentList '--smoke' -PassThru
-          # NEVER wait unbounded: 10-minute ceiling, then kill and fail
-          Wait-Process -Id $p.Id -Timeout 600 -ErrorAction SilentlyContinue
-          if (-not $p.HasExited) {
-            Write-Host "PORTABLE SMOKE HUNG — killing after 10 minutes"
-            Stop-Process -Id $p.Id -Force
-            exit 90
-          }
-          $code = $p.ExitCode
-          if (Test-Path .\smoke-results-portable.json) {
-            Write-Host "── smoke-results-portable.json ──"
-            Get-Content .\smoke-results-portable.json
-          }
-          if ($code -ne 0) { Write-Host "PORTABLE SMOKE FAILED (exit $code)"; exit $code }
-
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
 
@@ -131,16 +101,15 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit 1 }
           Get-ChildItem installer\Output
 
-      - name: Portable single-exe + SHA-256 manifest
+      - name: Portable zip + SHA-256 manifest
         shell: pwsh
         run: |
-          $portable = "LATCHI-xCLOUD-$env:VERSION-portable-win-x64.exe"
+          $zip = "LATCHI-xCLOUD-$env:VERSION-portable-win-x64.zip"
           New-Item -ItemType Directory -Force -Path artifacts | Out-Null
-          Copy-Item publish-portable\LATCHI-xCLOUD.exe $portable
-          Move-Item $portable artifacts\
+          Compress-Archive -Path publish\* -DestinationPath $zip
+          Move-Item $zip artifacts\
           Move-Item installer\Output\LATCHI-xCLOUD-$env:VERSION-x64-Setup.exe artifacts\
           Copy-Item smoke-results.json artifacts\
-          Copy-Item smoke-results-portable.json artifacts\
           $lines = @("LATCHI xCLOUD v$env:VERSION — win-x64 artifacts", "Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') UTC-local", "")
           Get-ChildItem artifacts | ForEach-Object {
             $h = (Get-FileHash $_.FullName -Algorithm SHA256).Hash

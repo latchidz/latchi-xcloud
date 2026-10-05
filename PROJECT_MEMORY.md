@@ -4,7 +4,7 @@
 
 ## Project
 
-**LATCHI xCLOUD** — مشغّل ويندوز مخصص لـ Xbox Cloud Gaming مع تكامل Better xCloud الرسمي. v0.1.0.
+**LATCHI xCLOUD** — مشغّل ويندوز مخصص لـ Xbox Cloud Gaming مع تكامل Better xCloud الرسمي. v1.0.0.
 
 ## Purpose
 
@@ -66,6 +66,15 @@ WebView2 SDK **1.0.4258.31**؛ Runtime = Evergreen المثبت مع ويندو�
 ## Build
 
 GitHub Actions `build.yml`: build → **55 xUnit** → publish (win-x64 self-contained R2R مجلد) → **فحص smoke على exe الإنتاجي** (WebView2 حقيقي + حقن + حجب + جسر) → Inno Setup → **بورتبل exe واحد** (Single-File مضغوط بذاته، بلا R2R لصالح الحجم ~80MB؛ استخراج المكتبات الأصلية تلقائي عند أول تشغيل) → manifest بصمات → artifact. ⛔ لا Release عام (المواصفة §66) — الأرتيفاكت عبر Actions فقط.
+
+## v1.0 (5 أكتوبر 2026) — إضافات المستخدم
+- **شاشة بدء احترافية** (`Views/SplashWindow`): نافذة مستقلة بأنيميشن، «Xbox Cloud Gaming» إنجليزية، صورة ملف شخصي اختيارية + شعار LATCHI، **نغمة إقلاع مُولَّدة تركيبياً** (أصلية 100% — صوت Xbox الحقيقي محمي بحقوق النشر؛ `assets/startup-chime.wav` كمورد WPF مضمن). حد أدنى للعرض 2.4s ثم fade-out عند جاهزية الصفحة.
+- **معالج أول تشغيل** (`FirstRunWindow` + `Core/FirstRunFlow`): اختيار لغة (AR/EN) ← تسجيل دخول Microsoft (التدفق الشرعي داخل الويبفيو؛ كشف النجاح عبر نمط `www.xbox.com/*/auth/msa?*loggedIn*` الرسمي نفسه الذي يراقبه BxC) ← دخول تلقائي بملء الشاشة. تخطٍّ متاح.
+- **سؤال الخروج**: «أبقِ حسابي مفتوحاً؟» نعم/لا + «لا تسألني مجدداً» — «لا» يمسح **كوكيز الدخول فقط** (`WebViewHost.ClearLoginCookiesAsync`: xbox.com/login.live.com/login.microsoftonline.com/account.live.com) ولا يمس بيانات BxC. الافتراضي "ask" والخيار محفوظ في `KeepSessionOnExit`.
+- **ملء الشاشة افتراضياً** (`StartFullscreen=true`) مع **رقاقة عائمة للخروج** تظهر عند لمس الماوس للحافة العليا (bridge يرسل `mouse-top` مقيّداً بمعدل 400ms) + F11/Esc يعملان دائماً.
+- **صورة الملف الشخصي** من الإعدادات (`Core/ProfileImage`: profile-image.png/jpg في دليل البيانات) — تُعرض في شاشة البدء بلا إعادة بناء.
+- ⚠️ **درس airspace حرج:** عنصر WebView2 في WPF هو `HuidHost` — عناصر WPF فوقه **لا تُرسم أبداً**. جميع الطبقات الطافية أصبحت نوافذ مستقلة (Splash/FirstRun/Error) أو `Popup` (toast + رقاقة الخروج) لكل منها HWND خاص. شاشات 0.1.0 الداخلية كانت غير مرئية عملياً فوق الصفحة — أُصلح جذرياً في 1.0.
+- **ترجمة AR/EN** (`Theme/Loc`) لنصوص المعالج/الحوارات/التلميحات؛ الـsplash إنجليزي دائماً بطلب المستخدم.
 
 ## ⛔ درس حرج: أبداً PushFrame متداخلة مع WebView2 (5 أكتوبر 2026)
 

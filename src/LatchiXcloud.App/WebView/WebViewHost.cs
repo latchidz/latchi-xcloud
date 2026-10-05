@@ -180,6 +180,35 @@ public sealed class WebViewHost
         }
     }
 
+    /// <summary>
+    /// Signs the user out of the Microsoft session (v1.0 "sign me out on exit") by deleting the
+    /// authentication cookies — nothing else: Better xCloud's local settings are untouched.
+    /// </summary>
+    public async Task ClearLoginCookiesAsync()
+    {
+        if (Core is not { } core) return;
+        try
+        {
+            var mgr = core.Profile.CookieManager;
+            var uris = new[]
+            {
+                "https://www.xbox.com", "https://xbox.com",
+                "https://login.live.com", "https://login.microsoftonline.com", "https://account.live.com",
+            };
+            foreach (var uri in uris)
+            {
+                var cookies = await mgr.GetCookiesAsync(uri);
+                foreach (var c in cookies)
+                    mgr.DeleteCookies(c.Name, uri);
+            }
+            Logger.Info("Login session cookies cleared (user chose sign-out)");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error("Could not clear login cookies: " + ex.Message);
+        }
+    }
+
     /// <summary>URLs that should be checked for Better xCloud (they match its own @match rules).</summary>
     public bool IsBetterXcloudPage(string? url)
     {

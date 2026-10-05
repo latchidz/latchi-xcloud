@@ -228,6 +228,40 @@ public static class SmokeRunner
 
         smokeWin.Close();
         await Task.Delay(300);
+
+        /* ── S9: v1.0 first-run wizard + session choice + profile picture ── */
+        var s9 = new SettingsStore(dataDir);
+        Add("S9 first-run defaults",
+            !s9.Current.FirstRunComplete && s9.Current.StartFullscreen
+            && s9.Current.KeepSessionOnExit == "ask" && s9.Current.PlayStartupSound,
+            $"fullscreen={s9.Current.StartFullscreen} keep={s9.Current.KeepSessionOnExit}");
+        var step = Core.Services.FirstRunFlow.InitialStep(s9.Current.FirstRunComplete);
+        step = Core.Services.FirstRunFlow.Advance(step); // language chosen → sign-in
+        Add("S9 wizard steps", step == "signin", "language→signin");
+        Add("S9 sign-in url detect",
+            Core.Services.FirstRunFlow.IsSignInSuccessUrl("https://www.xbox.com/en-US/auth/msa?loggedIn=true&ru=%2Fplay")
+            && !Core.Services.FirstRunFlow.IsSignInSuccessUrl("https://www.xbox.com/en-US/play")
+            && !Core.Services.FirstRunFlow.IsSignInSuccessUrl("https://login.live.com/")
+            && !Core.Services.FirstRunFlow.IsSignInSuccessUrl(null),
+            "auth/msa?loggedIn matrix");
+        s9.Current.FirstRunComplete = true;
+        s9.Current.KeepSessionOnExit = "signout";
+        s9.Save();
+        var s9b = new SettingsStore(dataDir);
+        Add("S9 wizard persisted", s9b.Current.FirstRunComplete && s9b.Current.KeepSessionOnExit == "signout");
+        File.WriteAllBytes(Path.Combine(dataDir, "profile-image.png"), new byte[] { 1, 2, 3 });
+        Add("S9 profile picture found",
+            Core.Services.ProfileImage.FindExisting(dataDir)?.EndsWith("profile-image.png", StringComparison.Ordinal) == true);
+        Core.Services.ProfileImage.Remove(dataDir);
+        Add("S9 profile picture removed", Core.Services.ProfileImage.FindExisting(dataDir) is null);
+        var chimeOk = false;
+        try
+        {
+            chimeOk = System.Windows.Application.GetResourceStream(
+                new Uri("pack://application:,,,/assets/startup-chime.wav")) is not null;
+        }
+        catch { }
+        Add("S9 startup chime asset", chimeOk, "embedded WAV resource");
     }
 
     /// <summary>JS that re-tests the generated @match regexes inside the real engine.</summary>

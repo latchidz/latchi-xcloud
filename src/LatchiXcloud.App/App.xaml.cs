@@ -64,9 +64,15 @@ public partial class App : Application
         Logger.Init(AppPaths.LogsDir);
         Logger.Info($"LATCHI xCLOUD {AppVersion} starting — data dir: {AppPaths.DataDir}");
 
-        var main = new MainWindow();
+        // v1.0: animated splash shows instantly while the heavy WebView2 initializes
+        var splash = new SplashWindow();
+        if (new SettingsStore(AppPaths.DataDir).Current.PlayStartupSound)
+            splash.PlayChime();
+        splash.Show();
+
+        var main = new MainWindow(splash);
         MainWindow = main;
-        main.Closed += (_, _) => Shutdown();
+        main.Closed += (_, _) => { splash.ForceClose(); Shutdown(); };
         main.Show();
     }
 
