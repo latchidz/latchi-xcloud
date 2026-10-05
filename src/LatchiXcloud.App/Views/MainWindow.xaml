@@ -1,0 +1,129 @@
+<Window x:Class="LatchiXcloud.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        xmlns:th="clr-namespace:LatchiXcloud.App.Theme"
+        Title="LATCHI xCLOUD"
+        Width="1180" Height="740" MinWidth="940" MinHeight="560"
+        WindowStyle="None" Background="Transparent"
+        FlowDirection="RightToLeft"
+        FontFamily="{StaticResource AppFont}"
+        PreviewKeyDown="Window_PreviewKeyDown">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="38"
+                      ResizeBorderThickness="6"
+                      GlassFrameThickness="0"
+                      CornerRadius="0"
+                      UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <!-- ═══ outer border (visible when windowed, padded when maximized) ═══ -->
+    <Border x:Name="OuterBorder" Background="{StaticResource BrushBg}"
+            BorderBrush="{StaticResource ColBorder}" BorderThickness="1"
+            CornerRadius="8" ClipToBounds="True">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- ═══════════ TITLE BAR ═══════════ -->
+            <Grid x:Name="TitleBar" Grid.Row="0" Height="38" Background="{StaticResource BrushTitlebar}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- brand -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="12,0,0,0">
+                    <Path Data="{x:Static th:Icons.Cloud}" Stroke="{StaticResource BrushGold}" StrokeThickness="1.8"
+                          Fill="Transparent" Width="17" Height="17" Stretch="Uniform"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                          VerticalAlignment="Center"/>
+                    <TextBlock Text="LATCHI xCLOUD" Foreground="{StaticResource BrushText}" FontWeight="Bold"
+                               FontSize="12.5" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </StackPanel>
+
+                <!-- Better xCloud status chip -->
+                <Border Grid.Column="1" x:Name="ChipBxc" Style="{StaticResource StatusChip}" Margin="12,0,0,0"
+                        VerticalAlignment="Center" Cursor="Hand" MouseLeftButtonUp="ChipBxc_Click"
+                        ToolTip="حالة Better xCloud — اضغط للتفاصيل">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse x:Name="ChipDot" Width="7" Height="7" Fill="{StaticResource BrushMuted}"
+                                 VerticalAlignment="Center"/>
+                        <TextBlock x:Name="ChipText" Text="Better xCloud…" FontSize="11.5"
+                                   Foreground="{StaticResource BrushMuted}" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- toolbar -->
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="BtnHome" Style="{StaticResource BarBtn}" Tag="{x:Static th:Icons.Home}" ToolTip="الصفحة الرئيسية (xCloud)" Click="BtnHome_Click"/>
+                    <Button x:Name="BtnReload" Style="{StaticResource BarBtn}" Tag="{x:Static th:Icons.Reload}" ToolTip="إعادة تحميل (Ctrl+Shift+R)" Click="BtnReload_Click"/>
+                    <Button x:Name="BtnFullscreen" Style="{StaticResource BarBtn}" Tag="{x:Static th:Icons.Fullscreen}" ToolTip="ملء الشاشة (F11)" Click="BtnFullscreen_Click"/>
+                    <Button x:Name="BtnSettings" Style="{StaticResource BarBtn}" Tag="{x:Static th:Icons.Settings}" ToolTip="الإعدادات" Click="BtnSettings_Click"/>
+                    <Button x:Name="BtnDiag" Style="{StaticResource BarBtn}" Tag="{x:Static th:Icons.Pulse}" ToolTip="التشخيصات" Click="BtnDiag_Click"/>
+                </StackPanel>
+
+                <!-- window buttons -->
+                <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,4,0"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button x:Name="BtnMin" Style="{StaticResource WinBtn}" Tag="{x:Static th:Icons.Minimize}" ToolTip="تصغير" Click="BtnMin_Click"/>
+                    <Button x:Name="BtnMax" Style="{StaticResource WinBtn}" Tag="{x:Static th:Icons.Maximize}" ToolTip="تكبير" Click="BtnMax_Click"/>
+                    <Button x:Name="BtnClose" Style="{StaticResource WinBtn}" Tag="{x:Static th:Icons.Close}" ToolTip="إغلاق" Click="BtnClose_Click"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- ═══════════ CONTENT ═══════════ -->
+            <Grid Grid.Row="1">
+                <wv:WebView2 x:Name="Web" DefaultBackgroundColor="#0A0D14"/>
+
+                <!-- splash -->
+                <Border x:Name="Splash" Background="#0A0D14">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Path Data="{x:Static th:Icons.Cloud}" Stroke="{StaticResource BrushGold}" StrokeThickness="1.6"
+                              Fill="Transparent" Width="84" Height="84" Stretch="Uniform"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                              HorizontalAlignment="Center"/>
+                        <TextBlock Text="LATCHI xCLOUD" FontSize="26" FontWeight="Bold"
+                                   Foreground="{StaticResource BrushText}" HorizontalAlignment="Center" Margin="0,18,0,0"/>
+                        <TextBlock x:Name="SplashStatus" Text="Starting xCloud…" FontSize="13.5"
+                                   Foreground="{StaticResource BrushMuted}" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- error / offline screen -->
+                <Border x:Name="ErrorScreen" Background="#EE0A0D14" Visibility="Collapsed">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="520">
+                        <Path Data="{x:Static th:Icons.Warn}" Stroke="{StaticResource BrushGold}" StrokeThickness="1.6"
+                              Fill="Transparent" Width="46" Height="46" Stretch="Uniform"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                              HorizontalAlignment="Center"/>
+                        <TextBlock x:Name="ErrorTitle" Text="Xbox Cloud Gaming could not be loaded."
+                                   FontSize="17" FontWeight="Bold" Foreground="{StaticResource BrushText}"
+                                   HorizontalAlignment="Center" Margin="0,16,0,6" TextAlignment="Center"/>
+                        <TextBlock x:Name="ErrorDetail" Text="" FontSize="12.5" Foreground="{StaticResource BrushMuted}"
+                                   HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,22,0,0">
+                            <Button Style="{StaticResource GoldBtn}" Content="إعادة المحاولة" Click="BtnRetry_Click"/>
+                            <Button Style="{StaticResource GhostBtn}" Content="إعادة تحميل الصفحة" Margin="10,0,0,0" Click="BtnReloadPage_Click"/>
+                            <Button Style="{StaticResource GhostBtn}" Content="فتح في المتصفح الخارجي" Margin="10,0,0,0" Click="BtnOpenExternal_Click"/>
+                            <Button Style="{StaticResource GhostBtn}" Content="التشخيصات" Margin="10,0,0,0" Click="BtnDiag_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- toast -->
+                <Border x:Name="Toast" Background="#F0121826" BorderBrush="{StaticResource ColBorder}" BorderThickness="1"
+                        CornerRadius="9" Padding="16,9" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                        Margin="0,0,0,22" Visibility="Collapsed" IsHitTestVisible="False">
+                    <TextBlock x:Name="ToastText" Text="" Foreground="{StaticResource BrushText}" FontSize="12.5"/>
+                </Border>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>
