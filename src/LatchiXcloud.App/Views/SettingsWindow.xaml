@@ -1,0 +1,98 @@
+<Window x:Class="LatchiXcloud.App.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:th="clr-namespace:LatchiXcloud.App.Theme"
+        Title="إعدادات LATCHI xCLOUD"
+        Width="560" SizeToContent="Height" MinWidth="520"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
+        FlowDirection="RightToLeft"
+        Background="{StaticResource BrushBg}"
+        FontFamily="{StaticResource AppFont}">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="700">
+        <StackPanel Margin="18">
+
+            <!-- ═══ Application ═══ -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="التطبيق" Style="{StaticResource SectionTitle}"/>
+                    <CheckBox x:Name="ChkMaximized" Style="{StaticResource Switch}" Content="البدء بنافذة مكبّرة" Margin="0,3"/>
+                    <CheckBox x:Name="ChkFullscreen" Style="{StaticResource Switch}" Content="البدء بملء الشاشة (F11)" Margin="0,3"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock Text="اللغة:" Style="{StaticResource FieldLabel}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="CmbLang" Width="140" SelectedIndex="0">
+                            <ComboBoxItem Content="العربية"/>
+                            <ComboBoxItem Content="English"/>
+                        </ComboBox>
+                        <TextBlock Text="(تُطبَّق بعد إعادة التشغيل)" Foreground="{StaticResource BrushMuted}" FontSize="10.5"
+                                   VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ═══ Performance ═══ -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="الأداء" Style="{StaticResource SectionTitle}"/>
+                    <CheckBox x:Name="ChkLowEnd" Style="{StaticResource Switch}" Content="وضع الجهاز الضعيف (4GB RAM) — تبسيط واجهة التطبيق فقط" Margin="0,3"/>
+                    <TextBlock Text="ملاحظة: تسريع العتاد للفيديو يبقى مفعّلاً دائماً — لا يُعطَّل أبداً لأنه أساس بث الألعاب."
+                               Foreground="{StaticResource BrushMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- ═══ Better xCloud ═══ -->
+            <Border x:Name="CardBxc" Style="{StaticResource Card}" Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="Better xCloud" Style="{StaticResource SectionTitle}"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="النسخة المدمجة:" Foreground="{StaticResource BrushMuted}" FontSize="12"/>
+                            <TextBlock x:Name="TxtBxcVersion" Text="—" Style="{StaticResource Mono}" FontSize="14" FontWeight="Bold"/>
+                            <TextBlock x:Name="TxtBxcSource" Text="المصدر الرسمي: redphx/better-xcloud" Foreground="{StaticResource BrushMuted}" FontSize="10.5" Margin="0,3,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <Button x:Name="BtnCheckUpdate" Style="{StaticResource GhostBtn}" Content="فحص التحديثات" Click="BtnCheckUpdate_Click"/>
+                            <Button x:Name="BtnUpdateNow" Style="{StaticResource GoldBtn}" Content="تحديث الآن" Margin="0,8,0,0"
+                                    Visibility="Collapsed" Click="BtnUpdateNow_Click"/>
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock x:Name="TxtUpdateStatus" Text="" Foreground="{StaticResource BrushMuted}" FontSize="11.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                    <CheckBox x:Name="ChkAutoUpdate" Style="{StaticResource Switch}" Content="فحص وتحديث تلقائي من المصدر الرسمي فقط" Margin="0,10,0,0"/>
+                    <TextBlock Text="التحديثات تُفعَّل عند إعادة تشغيل التطبيق فقط — أبدداً أثناء اللعب. إذا فشلت النسخة الجديدة يُسترجع السابق تلقائياً."
+                               Foreground="{StaticResource BrushMuted}" FontSize="10.5" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                    <Button x:Name="BtnRollback" Style="{StaticResource GhostBtn}" Content="استرجاع النسخة السابقة" Margin="0,10,0,0"
+                            Visibility="Collapsed" Click="BtnRollback_Click"/>
+                </StackPanel>
+            </Border>
+
+            <!-- ═══ Data ═══ -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="البيانات" Style="{StaticResource SectionTitle}"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Style="{StaticResource GhostBtn}" Content="فتح مجلد البيانات" Click="BtnOpenData_Click"/>
+                        <Button Style="{StaticResource GhostBtn}" Content="مسح بيانات Better xCloud…" Margin="10,0,0,0" Click="BtnClearBxc_Click"/>
+                    </StackPanel>
+                    <Button Style="{StaticResource GhostBtn}" Content="إعادة تعيين بيانات التطبيق بالكامل…" Margin="0,10,0,0" Click="BtnResetApp_Click"/>
+                    <TextBlock Text="بياناتك في جهازك فقط: ملف تعريف مستقل للتطبيق، ولا يُقرأ أي شيء من متصفحك. مسح البيانات الكامل سيُخرجك من حسابك."
+                               Foreground="{StaticResource BrushMuted}" FontSize="10.5" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- ═══ About ═══ -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="حول" Style="{StaticResource SectionTitle}"/>
+                    <TextBlock Foreground="{StaticResource BrushMuted}" FontSize="11" TextWrapping="Wrap" LineHeight="19"
+                               Text="LATCHI xCLOUD — مشغل مستقل لخدمة Xbox Cloud Gaming مع تكامل Better xCloud الرسمي (MIT).&#10;مشروع مستقل غير تابع لـ Microsoft أو Xbox ولا يدعم أي رعاية رسمية منهما.&#10;لا يجمع التطبيق أي بيانات ولا يتتبعك — بلا قياسات ولا تحليلات."/>
+                </StackPanel>
+            </Border>
+
+            <Button x:Name="BtnClose" Style="{StaticResource GoldBtn}" Content="إغلاق" Width="120" HorizontalAlignment="Center" Click="BtnClose_Click"/>
+        </StackPanel>
+    </ScrollViewer>
+</Window>
