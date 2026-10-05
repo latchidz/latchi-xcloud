@@ -1,0 +1,6 @@
+# resources/ must stay byte-identical to the pinned upstream release.
+# Any EOL conversion at checkout (Windows autocrlf) breaks the SHA-256
+# provenance check against bxc-manifest.json (§70).
+resources/** -text
+*.png -text
+*.ico -text

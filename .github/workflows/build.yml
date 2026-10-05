@@ -16,6 +16,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify pinned resources (byte-exact)
+        shell: pwsh
+        run: |
+          # The bundled Better xCloud userscript must be byte-identical to the
+          # pinned official release — fail fast if git or anything altered it.
+          $expected = (Get-Content resources/bxc-manifest.json -Raw | ConvertFrom-Json).Sha256
+          $actual = (Get-FileHash resources/better-xcloud.user.js -Algorithm SHA256).Hash.ToLower()
+          Write-Host "expected: $expected"
+          Write-Host "actual  : $actual"
+          if ($expected -ne $actual) { Write-Host "SHA-256 MISMATCH — resources are not byte-exact"; exit 20 }
+
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:

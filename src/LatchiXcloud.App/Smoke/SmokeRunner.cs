@@ -194,7 +194,7 @@ public static class SmokeRunner
         Add("S7 test page loaded", navOk, navOk ? "ok" : "timeout");
         await Task.Delay(400);
 
-        var marker = await wv.CoreWebView2.ExecuteScriptAsync("window.__LATCHI ? 'loader-ok' : 'loader-missing'");
+        var marker = await wv.CoreWebView2.ExecuteScriptAsync("window.__LATCHI__ && window.__LATCHI_PROBE ? 'loader-ok' : 'loader-missing'");
         Add("S7 loader injected", marker.Contains("loader-ok"), marker);
 
         var probe = await wv.CoreWebView2.ExecuteScriptAsync("window.__LATCHI_PROBE ? window.__LATCHI_PROBE() : 'missing'");
