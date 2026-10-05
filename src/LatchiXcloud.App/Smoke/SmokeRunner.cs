@@ -88,9 +88,10 @@ public static class SmokeRunner
         Add("S1 corrupt safe", new SettingsStore(dataDir).Current.StartMaximized);
 
         /* ── S2: shipped Better xCloud script is the official one ────── */
-        var bundledPath = Path.Combine(AppContext.BaseDirectory, "resources", "better-xcloud.user.js");
+        // resolves from disk, or from the embedded copies in the single-file portable build
+        var (bundledPath, bundledManifestPath) = Services.BundledResources.Resolve();
         var bundledManifest = Core.Services.Json.Deserialize<Core.Updates.BetterXcloudManifest>(
-            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "resources", "bxc-manifest.json")));
+            File.ReadAllText(bundledManifestPath));
         var source = File.ReadAllText(bundledPath);
         var meta = UserscriptMetadata.Parse(source);
         Add("S2 metadata", meta.Name == "Better xCloud" && meta.Version == "6.7.12"

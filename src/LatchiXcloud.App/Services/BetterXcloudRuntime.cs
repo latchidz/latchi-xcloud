@@ -26,8 +26,8 @@ public sealed class BetterXcloudRuntime
         Updates = new BetterXcloudUpdateService(
             new HttpFileSource(),
             AppPaths.UpdatesDir, AppPaths.ActiveScriptDir, AppPaths.PreviousScriptDir);
-        _bundledScript = Path.Combine(AppContext.BaseDirectory, "resources", "better-xcloud.user.js");
-        _bundledManifest = Path.Combine(AppContext.BaseDirectory, "resources", "bxc-manifest.json");
+        // folder layout, or embedded copies for the single-file portable build
+        (_bundledScript, _bundledManifest) = BundledResources.Resolve();
     }
 
     /// <summary>Prepare the active script: bootstrap, staged activation, validation.</summary>

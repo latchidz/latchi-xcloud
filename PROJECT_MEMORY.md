@@ -65,7 +65,7 @@ WebView2 SDK **1.0.4258.31**؛ Runtime = Evergreen المثبت مع ويندو�
 
 ## Build
 
-GitHub Actions `build.yml`: build → **55 xUnit** → publish (win-x64 self-contained R2R مجلد) → **فحص smoke على exe الإنتاجي** (WebView2 حقيقي + حقن + حجب + جسر) → Inno Setup → بورتبل zip → manifest بصمات → artifact. ⛔ لا Release عام (المواصفة §66) — الأرتيفاكت عبر Actions فقط.
+GitHub Actions `build.yml`: build → **55 xUnit** → publish (win-x64 self-contained R2R مجلد) → **فحص smoke على exe الإنتاجي** (WebView2 حقيقي + حقن + حجب + جسر) → Inno Setup → **بورتبل exe واحد** (Single-File مضغوط بذاته، بلا R2R لصالح الحجم ~80MB؛ استخراج المكتبات الأصلية تلقائي عند أول تشغيل) → manifest بصمات → artifact. ⛔ لا Release عام (المواصفة §66) — الأرتيفاكت عبر Actions فقط.
 
 ## ⛔ درس حرج: أبداً PushFrame متداخلة مع WebView2 (5 أكتوبر 2026)
 
