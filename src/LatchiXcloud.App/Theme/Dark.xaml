@@ -115,7 +115,7 @@
     <!-- ═══ settings widgets ═══ -->
     <Style x:Key="Card" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource BrushPanel}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource ColBorder}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BrushBorder}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="10"/>
         <Setter Property="Padding" Value="16"/>
@@ -144,7 +144,7 @@
                     <StackPanel Orientation="Horizontal">
                         <Grid Width="38" Height="20" VerticalAlignment="Center">
                             <Border x:Name="track" Background="{StaticResource BrushPanel2}" CornerRadius="10"
-                                    BorderBrush="{StaticResource ColBorder}" BorderThickness="1"/>
+                                    BorderBrush="{StaticResource BrushBorder}" BorderThickness="1"/>
                             <Ellipse x:Name="knob" Width="14" Height="14" Fill="{StaticResource BrushMuted}"
                                      HorizontalAlignment="Left" VerticalAlignment="Center" Margin="3,0,0,0"/>
                         </Grid>
@@ -170,7 +170,7 @@
     <!-- ═══ status chip (Better xCloud state) ═══ -->
     <Style x:Key="StatusChip" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource BrushPanel2}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource ColBorder}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BrushBorder}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="9"/>
         <Setter Property="Padding" Value="9,3"/>

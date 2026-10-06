@@ -1,0 +1,75 @@
+namespace LatchiXcloud.App.Theme;
+
+/// <summary>
+/// UI strings for the two supported locales: Arabic + English (spec: AR/EN only).
+/// The splash screen itself is always English ("Xbox Cloud Gaming") by explicit design.
+/// </summary>
+public static class Loc
+{
+    private static readonly Dictionary<string, (string Ar, string En)> Table = new()
+    {
+        // first-run wizard
+        ["wizardLangTitle"] = ("اختر لغتك المفضّلة", "Choose your preferred language"),
+        ["wizardLangSub"]   = ("يمكنك تغييرها لاحقاً من الإعدادات", "You can change it later in Settings"),
+        ["wizardSignInTitle"] = ("سجّل الدخول بحساب Microsoft", "Sign in with your Microsoft account"),
+        ["wizardSignInDetail"] = (
+            "افتح صفحة تسجيل الدخول وأدخل حسابك — الجلسة تبقى محفوظة داخل التطبيق، وفي المرة القادمة يدخل مباشرة إلى Xbox Cloud Gaming.",
+            "Open the sign-in page and enter your account — the session stays saved inside the app, and next time it goes straight to Xbox Cloud Gaming."),
+        ["wizardSignInOpen"] = ("تسجيل الدخول الآن", "Sign in now"),
+        ["wizardSkip"] = ("تخطّي الآن", "Skip for now"),
+        ["wizardStreamTitle"] = ("إعدادات البث", "Stream settings"),
+        ["wizardStreamDetail"] = (
+            "تُطبَّق على Better xCloud قبل فتح الموقع. يمكنك تغييرها لاحقاً من الإعدادات.",
+            "Applied to Better xCloud before the site opens. You can change them later in Settings."),
+        ["wizardQuality"] = ("جودة / دقة البث:", "Stream quality / resolution:"),
+        ["wizardGameLang"] = ("لغة الألعاب (لغة المحتوى):", "Game language (content language):"),
+        ["wizardGameLangNote"] = (
+            "مستقلة عن لغة واجهة التطبيق — مثال: واجهة عربية وألعاب إنجليزية.",
+            "Independent from the app UI language — e.g. Arabic UI + English games."),
+        ["wizardRegionNote"] = (
+            "الخادم/المنطقة: تلقائي — قائمة الخوادم المتاحة فعلياً تُعرض داخل إعدادات Better xCloud بواجهة xCloud لأنها تُجلب مباشرة من الخدمة.",
+            "Server/region: Auto — the actual list of available servers is shown inside Better xCloud's settings in the xCloud UI, because it is fetched live from the service."),
+        ["wizardNext"] = ("متابعة", "Continue"),
+        ["wizardBack"] = ("رجوع", "Back"),
+        ["welcomeSaved"] = ("تم تسجيل الدخول وحفظ جلستك — أهلاً بك!", "Signed in and session saved — welcome!"),
+
+        // exit / keep-session dialog
+        ["keepTitle"] = ("جلستك في Xbox Cloud Gaming", "Your Xbox Cloud Gaming session"),
+        ["keepMessage"] = ("هل تريد أن يبقى حسابك مفتوحاً عند إغلاق التطبيق؟", "Keep your account signed in when the app closes?"),
+        ["keepYes"] = ("نعم، أبقِ حسابي مفتوحاً", "Yes, keep me signed in"),
+        ["keepNo"] = ("لا، سجّل خروجي", "No, sign me out"),
+        ["keepRemember"] = ("لا تسألني مجدداً", "Don't ask me again"),
+
+        // toolbar tooltips
+        ["tipHome"] = ("الصفحة الرئيسية (xCloud)", "Home (xCloud)"),
+        ["tipReload"] = ("إعادة تحميل (Ctrl+Shift+R)", "Reload (Ctrl+Shift+R)"),
+        ["tipFullscreen"] = ("ملء الشاشة (F11)", "Fullscreen (F11)"),
+        ["tipSettings"] = ("الإعدادات", "Settings"),
+        ["tipDiag"] = ("التشخيصات", "Diagnostics"),
+        ["tipExitFs"] = ("العودة إلى وضع النافذة (F11 / Esc)", "Back to windowed (F11 / Esc)"),
+        ["tipMin"] = ("تصغير", "Minimize"),
+        ["tipMax"] = ("تكبير", "Maximize"),
+        ["tipClose"] = ("إغلاق", "Close"),
+
+        // errors
+        ["errOfflineTitle"] = ("لا يوجد اتصال بالإنترنت.", "You are offline."),
+        ["errOfflineDetail"] = ("اضغط «إعادة المحاولة» بعد استعادة الاتصال.", "Press Retry once your connection is back."),
+        ["errLoadTitle"] = ("Xbox Cloud Gaming could not be loaded.", "Xbox Cloud Gaming could not be loaded."),
+        ["errWebviewTitle"] = ("تعذّر تشغيل محرك العرض (WebView2).", "Could not start the WebView2 engine."),
+        ["errBlockedNav"] = ("تم حظر فتح موقع خارج نطاق Xbox/Microsoft", "Navigation outside Xbox/Microsoft was blocked"),
+
+        // settings
+        ["setOnExit"] = ("عند إغلاق التطبيق:", "When the app closes:"),
+        ["setOnExitAsk"] = ("اسألني في كل مرة", "Ask me every time"),
+        ["setOnExitKeep"] = ("أبقِ جلستي مفتوحة", "Keep me signed in"),
+        ["setOnExitSignout"] = ("سجّل خروجي", "Sign me out"),
+
+        // misc
+        ["appLangNote"] = ("(تُطبَّق بعد إعادة التشغيل)", "(applies after restart)"),
+    };
+
+    public static string S(string lang, string key)
+        => Table.TryGetValue(key, out var v)
+            ? (lang == "en" ? v.En : v.Ar)
+            : key;
+}

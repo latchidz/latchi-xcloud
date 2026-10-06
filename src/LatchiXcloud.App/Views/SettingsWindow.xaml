@@ -27,6 +27,14 @@
                         <TextBlock Text="(تُطبَّق بعد إعادة التشغيل)" Foreground="{StaticResource BrushMuted}" FontSize="10.5"
                                    VerticalAlignment="Center" Margin="8,0,0,0"/>
                     </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock Text="عند إغلاق التطبيق:" Style="{StaticResource FieldLabel}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="CmbKeepSession" Width="210" SelectedIndex="0">
+                            <ComboBoxItem Content="اسألني في كل مرة"/>
+                            <ComboBoxItem Content="أبقِ جلستي مفتوحة"/>
+                            <ComboBoxItem Content="سجّل خروجي"/>
+                        </ComboBox>
+                    </StackPanel>
                 </StackPanel>
             </Border>
 
@@ -37,6 +45,25 @@
                     <CheckBox x:Name="ChkLowEnd" Style="{StaticResource Switch}" Content="وضع الجهاز الضعيف (4GB RAM) — تبسيط واجهة التطبيق فقط" Margin="0,3"/>
                     <TextBlock Text="ملاحظة: تسريع العتاد للفيديو يبقى مفعّلاً دائماً — لا يُعطَّل أبداً لأنه أساس بث الألعاب."
                                Foreground="{StaticResource BrushMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- ═══ Cloud Gaming (the REAL Better xCloud values — one effective configuration) ═══ -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="بث السحابة (قيم Better xCloud الفعلية)" Style="{StaticResource SectionTitle}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                        <TextBlock Text="جودة / دقة البث:" Style="{StaticResource FieldLabel}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="CmbQuality" Width="240" Height="30" FontSize="12.5"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock Text="لغة الألعاب:" Style="{StaticResource FieldLabel}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="CmbGameLang" Width="240" Height="30" FontSize="12.5"/>
+                    </StackPanel>
+                    <TextBlock x:Name="TxtBxcLive" Text="— القيم الحالية الفعلية داخل Better xCloud —"
+                               Foreground="{StaticResource BrushMuted}" FontSize="10.5" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                    <TextBlock Text="مستقلة عن لغة واجهة التطبيق. الخادم/المنطقة: تلقائي — قائمة الخوادم المتاحة فعلياً داخل إعدادات Better xCloud بواجهة xCloud. التغييرات تُطبَّق فوراً على نفس قيم Better xCloud."
+                               Foreground="{StaticResource BrushMuted}" FontSize="10.5" TextWrapping="Wrap" Margin="0,6,0,0"/>
                 </StackPanel>
             </Border>
 

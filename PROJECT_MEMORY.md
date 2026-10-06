@@ -4,7 +4,7 @@
 
 ## Project
 
-**LATCHI xCLOUD** — مشغّل ويندوز مخصص لـ Xbox Cloud Gaming مع تكامل Better xCloud الرسمي. v0.1.0.
+**LATCHI xCLOUD** — مشغّل ويندوز مخصص لـ Xbox Cloud Gaming مع تكامل Better xCloud الرسمي. v1.0.0.
 
 ## Purpose
 
@@ -65,7 +65,33 @@ WebView2 SDK **1.0.4258.31**؛ Runtime = Evergreen المثبت مع ويندو�
 
 ## Build
 
-GitHub Actions `build.yml`: build → **55 xUnit** → publish (win-x64 self-contained R2R مجلد) → **فحص smoke على exe الإنتاجي** (WebView2 حقيقي + حقن + حجب + جسر) → Inno Setup → بورتبل zip → manifest بصمات → artifact. ⛔ لا Release عام (المواصفة §66) — الأرتيفاكت عبر Actions فقط.
+GitHub Actions `build.yml`: build → **55 xUnit** → publish (win-x64 self-contained R2R مجلد) → **فحص smoke على exe الإنتاجي** (WebView2 حقيقي + حقن + حجب + جسر) → Inno Setup → **بورتبل exe واحد** (Single-File مضغوط بذاته، بلا R2R لصالح الحجم ~80MB؛ استخراج المكتبات الأصلية تلقائي عند أول تشغيل) → manifest بصمات → artifact. ⛔ لا Release عام (المواصفة §66) — الأرتيفاكت عبر Actions فقط.
+
+## v1.0 (5 أكتوبر 2026) — إضافات المستخدم
+- **شاشة بدء احترافية** (`Views/SplashWindow`): نافذة مستقلة بأنيميشن، «Xbox Cloud Gaming» إنجليزية، صورة ملف شخصي اختيارية + شعار LATCHI، **نغمة إقلاع مُولَّدة تركيبياً** (أصلية 100% — صوت Xbox الحقيقي محمي بحقوق النشر؛ `assets/startup-chime.wav` كمورد WPF مضمن). حد أدنى للعرض 2.4s ثم fade-out عند جاهزية الصفحة.
+- **معالج أول تشغيل** (`FirstRunWindow` + `Core/FirstRunFlow`): اختيار لغة (AR/EN) ← تسجيل دخول Microsoft (التدفق الشرعي داخل الويبفيو؛ كشف النجاح عبر نمط `www.xbox.com/*/auth/msa?*loggedIn*` الرسمي نفسه الذي يراقبه BxC) ← دخول تلقائي بملء الشاشة. تخطٍّ متاح.
+- **سؤال الخروج**: «أبقِ حسابي مفتوحاً؟» نعم/لا + «لا تسألني مجدداً» — «لا» يمسح **كوكيز الدخول فقط** (`WebViewHost.ClearLoginCookiesAsync`: xbox.com/login.live.com/login.microsoftonline.com/account.live.com) ولا يمس بيانات BxC. الافتراضي "ask" والخيار محفوظ في `KeepSessionOnExit`.
+- **ملء الشاشة افتراضياً** (`StartFullscreen=true`) مع **رقاقة عائمة للخروج** تظهر عند لمس الماوس للحافة العليا (bridge يرسل `mouse-top` مقيّداً بمعدل 400ms) + F11/Esc يعملان دائماً.
+- **صورة الملف الشخصي** من الإعدادات (`Core/ProfileImage`: profile-image.png/jpg في دليل البيانات) — تُعرض في شاشة البدء بلا إعادة بناء.
+- ⚠️ **درس airspace حرج:** عنصر WebView2 في WPF هو `HuidHost` — عناصر WPF فوقه **لا تُرسم أبداً**. جميع الطبقات الطافية أصبحت نوافذ مستقلة (Splash/FirstRun/Error) أو `Popup` (toast + رقاقة الخروج) لكل منها HWND خاص. شاشات 0.1.0 الداخلية كانت غير مرئية عملياً فوق الصفحة — أُصلح جذرياً في 1.0.
+- **ترجمة AR/EN** (`Theme/Loc`) لنصوص المعالج/الحوارات/التلميحات؛ الـsplash إنجليزي دائماً بطلب المستخدم.
+
+## v1.0.1 (6 أكتوبر 2026) — إصلاح الإقلاع عند المستخدم
+المستخدم جرّب 1.0.0: شاشة البدء علقت عند «Connecting…» والمثبّت لم يظهر شيئاً. الجذور:
+1. **DispatcherPriority.Background يتضور جوعاً**: جدولة المعالج وكل DispatcherTimers كانت Background (أدنى من Render) — صفحة xbox.com تُبقي قائمة الرسم مشغولة باستمرار → المعالج ومؤقت إخفاء الشاشة لا يعملان أبداً → «عالقة». **القاعدة الدائمة: كل ما يخص تدفق الإقلاع = Normal على الأقل؛ DispatcherTimer الافتراضي Background!**
+2. نسخة ثانية على نفس مجلد البيانات (مثبت بعد محمولة عالقة) تتصادم على قفل ملف تعريف WebView2 → **ميوتكس Local\LATCHI-xCLOUD-single-instance** (بلا اكتساب في وضع smoke).
+القرارات (بطلب المستخدم الصريح): **حذف SplashWindow وصوت الإقلاع وProfileImage نهائياً** (إقلاع مباشر: نافذة مكبّرة بأزرار الويندوز، StartFullscreen=false افتراضياً، F11 اختياري)؛ **حارس تنقل 30 ث** (أول تنقل لا يكتمل → شاشة خطأ بRetry بدل تعليق صامت)؛ **S10 في smoke: تنقل حقيقي إلى xbox.com يجب أن يكتمل خلال 45 ث** (فحص التعليق المُبلَّغ عنه فعلياً). الاختبارات 69.
+
+## v1.1.0 (6 أكتوبر 2026) — إصلاح انهيار الإقلاع + تدقيق تكوين أول تشغيل
+**الانهيار الحرج عند المستخدم**: «Set property 'System.Windows.Controls.Border.BorderBrush' threw an exception» فور فتح 1.0.0 قبل شاشة اللغة.
+- **الجذر**: `ColBorder` مُعرَّف `<Color>` في Dark.xaml واستُعمل `BorderBrush="{StaticResource ColBorder}"` في MainWindow.xaml (سطرا 27/95) وFirstRunWindow (14) وsetter أسلوب Card (118) وsetter آخر (173) — Color لا يُحوَّل لBrush → XamlParseException وقت التشغيل. البناء أخضر لأن StaticResource لا يُحل وقت الترجمة، وsmoke القديم كان يبني نافذته الخاصة فلم يمس XAML الإنتاج قط.
+- **الإصلاح**: المواضع الستة → `BrushBorder` (الفرشاة المعررفة أصلاً)؛ **اختباران جديدان يمنعان الفئة**: XamlBrushTests (تحليل ثابت لكل XAML: لا Color في خاصية Brush + لا StaticResource مفقود) وS11 (تحليل فعلي لكل نوافذ الإنتاج في CI على ويندوز حقيقي).
+- **تسجيل الأعطال (§2)**: CrashReport يسجل النوع/الرسالة/سلسلة Inner كاملة/StackTrace، وXamlParseException يضيف BaseUri+Line+Position؛ معالجات: DispatcherUnhandledException + AppDomain + UnobservedTask؛ لا يُسجَّل أي سر (استثناءات فقط).
+- **حارس حلقة الانهيار**: crash-streak.count في دليل البيانات — يُصفَّر عند خروج نظيف؛ ≥3 متتالية ← عرض إعادة تعيين الإعدادات (الجلسة/بيانات BxC تبقى).
+- **تدفق أول تشغيل v1.1 (بطلب صريح)**: اللغة ← **إعدادات البث** ← الدخول، **والموقع لا يُفتح قبل اكتمال الإعداد**. FirstRunFlow صار 4 خطوات (language→stream→signin→done).
+- **جسر الإعدادات الفعلي (§8)**: LATCHI UI → BxcSettings (Core) → `localStorage["BetterXcloud"]` → BxC نفسه. القيم من السكربت الرسمي حرفياً: `stream.video.resolution` = auto/720p/1080p/1080p-hq؛ `stream.locale` = default + 29 لغة (بينها ar-SA)؛ **المنطقة `server.region` ديناميكية من الخدمة داخل الصفحة** (STATES.serverRegions — ليست على window، لا يمكن قراءتها من المضيف) ← onboarding/الإعدادات تعرض Auto + إحالة لقائمة BxC الحية؛ `getGlobalPref/setGlobalPref` داخل IIFE (ليست على window) لذا القناة الوحيدة الصادقة = localStorage مباشرة: seed مرة واحدة قبل أول تنقل (document-created + علم BetterXcloud.Latchi.Seeded) ثم قراءة/كتابة حية عبر ExecuteScriptAsync + reload. لغة واجهة BxC نفسها (`bx.locale`) لا تدعم العربية (SUPPORTED_LANGUAGES بلا ar) — لغة LATCHI مستقلة تماماً.
+- **S12 جديد**: الجسر نهاية-إلى-نهاية في CI — seed ب1080p/en-US قبل تنقل حقيقي إلى xbox.com ثم قراءة localStorage داخل الصفحة والمطابقة.
+- **الاختبارات 83** (كانت 69): +7 BxcSettings (المخطط مطابق حرفياً للسكربت) +6 XamlBrush + تحديث FirstRun. الإصدار 1.1.0.
 
 ## ⛔ درس حرج: أبداً PushFrame متداخلة مع WebView2 (5 أكتوبر 2026)
 

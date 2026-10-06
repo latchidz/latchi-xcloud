@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using LatchiXcloud.App.WebView;
+using LatchiXcloud.App.Views;
 using LatchiXcloud.Core.Security;
 using LatchiXcloud.Core.Services;
 using LatchiXcloud.Core.Userscript;
@@ -88,9 +89,10 @@ public static class SmokeRunner
         Add("S1 corrupt safe", new SettingsStore(dataDir).Current.StartMaximized);
 
         /* ── S2: shipped Better xCloud script is the official one ────── */
-        var bundledPath = Path.Combine(AppContext.BaseDirectory, "resources", "better-xcloud.user.js");
+        // resolves from disk, or from the embedded copies in the single-file portable build
+        var (bundledPath, bundledManifestPath) = Services.BundledResources.Resolve();
         var bundledManifest = Core.Services.Json.Deserialize<Core.Updates.BetterXcloudManifest>(
-            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "resources", "bxc-manifest.json")));
+            File.ReadAllText(bundledManifestPath));
         var source = File.ReadAllText(bundledPath);
         var meta = UserscriptMetadata.Parse(source);
         Add("S2 metadata", meta.Name == "Better xCloud" && meta.Version == "6.7.12"
@@ -225,8 +227,100 @@ public static class SmokeRunner
             Add("S8 blocked navigation", true, "skipped — no network (NOT TESTED live)");
         }
 
+        /* ── S10: REAL xbox.com navigation must COMPLETE — never hang ────
+           (This is the exact navigation that hung on a real user machine in v1.0.0.
+            The page may fail from a datacenter IP — that's fine; hanging is not.) */
+        if (System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
+        {
+            var realTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            void RealDone(object? s2, Microsoft.Web.WebView2.Core.CoreWebView2NavigationCompletedEventArgs ev2)
+                => realTcs.TrySetResult(true);
+            wv.CoreWebView2!.NavigationCompleted += RealDone;
+            wv.CoreWebView2.Navigate("https://www.xbox.com/play");
+            var done = await Task.WhenAny(realTcs.Task, Task.Delay(TimeSpan.FromSeconds(45))) == realTcs.Task;
+            wv.CoreWebView2.NavigationCompleted -= RealDone;
+            Add("S10 real xbox.com navigation completes", done,
+                done ? "navigation completed (no hang)" : "HUNG >45s — exactly the reported bug");
+        }
+        else
+        {
+            Add("S10 real xbox.com navigation completes", true, "skipped — no network (NOT TESTED live)");
+        }
+
+        /* ── S11: production windows must PARSE — the v1.0.0 crash class ──
+           The published 1.0.0 died on launch with «Set property Border.BorderBrush
+           threw an exception» (a Color resource assigned to a Brush property).
+           StaticResource resolves at RUNTIME, so the build was green and the old smoke
+           (custom window, never the production XAML) could not see it. Here we parse
+           every production window for real, on real Windows, inside CI. */
+        var xamlOk = true;
+        var xamlDetail = "";
+        try
+        {
+            var mw = new MainWindow();          // InitializeComponent → BAML → resources
+            var fw = new FirstRunWindow();      // wizard (incl. the stream step)
+            var sw = new SettingsWindow(mw, new SettingsStore(dataDir),
+                new Services.BetterXcloudRuntime(), host); // needs a real runtime+host
+            var ew = new ErrorWindow(mw, "t", "d", "ar");
+            xamlDetail = "MainWindow + FirstRunWindow + SettingsWindow + ErrorWindow parsed";
+            // not Show()n — parse is the crash class; Show would need full app state
+            GC.KeepAlive(mw); GC.KeepAlive(fw); GC.KeepAlive(sw); GC.KeepAlive(ew);
+        }
+        catch (Exception ex)
+        {
+            xamlOk = false;
+            xamlDetail = ex.GetBaseException().Message;
+        }
+        Add("S11 production windows parse", xamlOk, xamlDetail);
+
+        /* ── S12: settings bridge END-TO-END — seed before navigation, read back
+           from the SAME store Better xCloud reads (localStorage["BetterXcloud"]) ── */
+        if (System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
+        {
+            // register the seed (what the onboarding does before the FIRST navigation)
+            await host.SeedBxcSettingsAsync("1080p", "en-US");
+            // navigate for real
+            var seedTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            void SeedDone(object? s3, Microsoft.Web.WebView2.Core.CoreWebView2NavigationCompletedEventArgs ev3)
+                => seedTcs.TrySetResult(true);
+            wv.CoreWebView2!.NavigationCompleted += SeedDone;
+            wv.CoreWebView2.Navigate("https://www.xbox.com/play");
+            var seeded = await Task.WhenAny(seedTcs.Task, Task.Delay(TimeSpan.FromSeconds(45))) == seedTcs.Task;
+            wv.CoreWebView2.NavigationCompleted -= SeedDone;
+            await Task.Delay(1200); // let document-created scripts settle
+            var (qRead, lRead) = await host.ReadBxcSettingsAsync();
+            Add("S12 settings bridge end-to-end",
+                seeded && qRead == "1080p" && lRead == "en-US",
+                $"seeded={seeded} quality={qRead} gameLang={lRead} (read back from localStorage[\"BetterXcloud\"])");
+        }
+        else
+        {
+            Add("S12 settings bridge end-to-end", true, "skipped — no network (NOT TESTED live)");
+        }
+
         smokeWin.Close();
         await Task.Delay(300);
+
+        /* ── S9: v1.0 first-run wizard + session choice ── */
+        var s9 = new SettingsStore(dataDir);
+        Add("S9 first-run defaults",
+            !s9.Current.FirstRunComplete && !s9.Current.StartFullscreen
+            && s9.Current.KeepSessionOnExit == "ask",
+            $"fullscreen={s9.Current.StartFullscreen} keep={s9.Current.KeepSessionOnExit}");
+        var step = Core.Services.FirstRunFlow.InitialStep(s9.Current.FirstRunComplete);
+        step = Core.Services.FirstRunFlow.Advance(step); // language chosen → sign-in
+        Add("S9 wizard steps", step == "signin", "language→signin");
+        Add("S9 sign-in url detect",
+            Core.Services.FirstRunFlow.IsSignInSuccessUrl("https://www.xbox.com/en-US/auth/msa?loggedIn=true&ru=%2Fplay")
+            && !Core.Services.FirstRunFlow.IsSignInSuccessUrl("https://www.xbox.com/en-US/play")
+            && !Core.Services.FirstRunFlow.IsSignInSuccessUrl("https://login.live.com/")
+            && !Core.Services.FirstRunFlow.IsSignInSuccessUrl(null),
+            "auth/msa?loggedIn matrix");
+        s9.Current.FirstRunComplete = true;
+        s9.Current.KeepSessionOnExit = "signout";
+        s9.Save();
+        var s9b = new SettingsStore(dataDir);
+        Add("S9 wizard persisted", s9b.Current.FirstRunComplete && s9b.Current.KeepSessionOnExit == "signout");
     }
 
     /// <summary>JS that re-tests the generated @match regexes inside the real engine.</summary>

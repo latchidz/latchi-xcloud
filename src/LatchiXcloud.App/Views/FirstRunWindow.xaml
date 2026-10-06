@@ -1,0 +1,94 @@
+<Window x:Class="LatchiXcloud.App.Views.FirstRunWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:th="clr-namespace:LatchiXcloud.App.Theme"
+        Title="LATCHI xCLOUD"
+        Width="500" SizeToContent="Height" MinWidth="480"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
+        Background="{StaticResource BrushBg}"
+        FontFamily="{StaticResource AppFont}">
+
+    <!-- v1.1 first-run wizard (separate window → its own HWND, no WebView2 airspace issues).
+         Step 1: language · Step 2: stream setup (the REAL Better xCloud values —
+         applied before the Xbox site is ever opened) · Step 3: Microsoft sign-in. -->
+
+    <Border BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="10" Margin="8" ClipToBounds="True">
+        <StackPanel Margin="26">
+
+            <!-- ═══ step 1: choose language ═══ -->
+            <StackPanel x:Name="StepLanguage">
+                <Path Data="{x:Static th:Icons.Globe}" Stroke="{StaticResource BrushGold}" StrokeThickness="1.5"
+                      Fill="Transparent" Width="40" Height="40" Stretch="Uniform"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                      HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                <TextBlock Text="اختر لغتك  ·  Choose your language" FontSize="19" FontWeight="Bold"
+                           Foreground="{StaticResource BrushText}" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                <TextBlock Text="يمكنك تغييرها لاحقاً من الإعدادات  ·  You can change it later in Settings"
+                           FontSize="11.5" Foreground="{StaticResource BrushMuted}" HorizontalAlignment="Center"
+                           Margin="0,6,0,18" TextAlignment="Center"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0" Style="{StaticResource GoldBtn}" Content="العربية" FontSize="16"
+                            Height="46" Click="BtnArabic_Click"/>
+                    <Button Grid.Column="2" Style="{StaticResource GoldBtn}" Content="English" FontSize="16"
+                            Height="46" Click="BtnEnglish_Click"/>
+                </Grid>
+            </StackPanel>
+
+            <!-- ═══ step 2: stream setup (real Better xCloud values) ═══ -->
+            <StackPanel x:Name="StepStream" Visibility="Collapsed">
+                <Path Data="{x:Static th:Icons.Gamepad}" Stroke="{StaticResource BrushGreen}" StrokeThickness="1.5"
+                      Fill="Transparent" Width="40" Height="40" Stretch="Uniform"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                      HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                <TextBlock x:Name="StreamTitle" Text="إعدادات البث" FontSize="19" FontWeight="Bold"
+                           Foreground="{StaticResource BrushText}" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                <TextBlock x:Name="StreamDetail" Text="تُطبَّق على Better xCloud قبل فتح الموقع. يمكنك تغييرها لاحقاً من الإعدادات."
+                           FontSize="11.5" Foreground="{StaticResource BrushMuted}" HorizontalAlignment="Center"
+                           Margin="0,6,0,16" TextWrapping="Wrap" TextAlignment="Center"/>
+
+                <TextBlock x:Name="LblQuality" Text="جودة / دقة البث:" Style="{StaticResource FieldLabel}" Margin="0,0,0,4"/>
+                <ComboBox x:Name="CmbQuality" Height="34" FontSize="13" SelectionChanged="CmbQuality_SelectionChanged"/>
+
+                <TextBlock x:Name="LblGameLang" Text="لغة الألعاب (لغة المحتوى):" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/>
+                <ComboBox x:Name="CmbGameLang" Height="34" FontSize="13"/>
+
+                <TextBlock x:Name="LblGameLangNote" FontSize="10.5" Foreground="{StaticResource BrushMuted}"
+                           Text="مستقلة عن لغة واجهة التطبيق — مثال: واجهة عربية وألعاب إنجليزية."
+                           TextWrapping="Wrap" Margin="0,5,0,0"/>
+
+                <Border Background="{StaticResource BrushPanel2}" CornerRadius="8" Padding="10" Margin="0,14,0,0">
+                    <TextBlock x:Name="LblRegionNote" FontSize="10.5" Foreground="{StaticResource BrushMuted}" TextWrapping="Wrap" LineHeight="17"
+                               Text="الخادم/المنطقة: تلقائي — القائمة الحقيقية للخوادم المتاحة تُعرض داخل إعدادات Better xCloud بواجهة xCloud لأنها تأتي مباشرة من الخدمة."/>
+                </Border>
+
+                <Button Style="{StaticResource GoldBtn}" x:Name="BtnStreamNext" FontSize="14" Height="44" Margin="0,16,0,0"
+                        Content="متابعة" Click="BtnStreamNext_Click"/>
+                <Button Style="{StaticResource GhostBtn}" x:Name="BtnStreamBack" Margin="0,10,0,0"
+                        Content="رجوع" Click="BtnStreamBack_Click"/>
+            </StackPanel>
+
+            <!-- ═══ step 3: Microsoft sign-in ═══ -->
+            <StackPanel x:Name="StepSignIn" Visibility="Collapsed">
+                <Path Data="{x:Static th:Icons.Globe}" Stroke="{StaticResource BrushGold}" StrokeThickness="1.5"
+                      Fill="Transparent" Width="40" Height="40" Stretch="Uniform"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                      HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                <TextBlock x:Name="SignInTitle" Text="" FontSize="19" FontWeight="Bold"
+                           Foreground="{StaticResource BrushText}" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                <TextBlock x:Name="SignInDetail" Text="" FontSize="12" Foreground="{StaticResource BrushMuted}"
+                           HorizontalAlignment="Center" Margin="0,6,0,18" TextWrapping="Wrap" TextAlignment="Center"/>
+
+                <Button Style="{StaticResource GoldBtn}" x:Name="BtnGoSignIn" FontSize="14" Height="44"
+                        Content="تسجيل الدخول الآن" Click="BtnGoSignIn_Click"/>
+                <Button Style="{StaticResource GhostBtn}" x:Name="BtnSkip" Margin="0,10,0,0"
+                        Content="تخطّي الآن" Click="BtnSkip_Click"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

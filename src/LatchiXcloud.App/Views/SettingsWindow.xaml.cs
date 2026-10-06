@@ -28,10 +28,53 @@ public partial class SettingsWindow : Window
         ChkLowEnd.IsChecked = s.LowEndMode;
         ChkAutoUpdate.IsChecked = s.AutoUpdateBetterXcloud;
         CmbLang.SelectedIndex = s.Language == "en" ? 1 : 0;
+        CmbKeepSession.SelectedIndex = Core.Services.FirstRunFlow.NormalizeKeepChoice(s.KeepSessionOnExit) switch
+        {
+            "keep" => 1, "signout" => 2, _ => 0
+        };
         TxtBxcVersion.Text = "v" + _bxc.ActiveVersion;
         if (_bxc.ActiveManifest.UpstreamCommit.Length >= 7)
             TxtBxcSource.Text = "المصدر الرسمي: redphx/better-xcloud @ " + _bxc.ActiveManifest.UpstreamCommit[..7];
         if (_bxc.Updates.HasPrevious()) BtnRollback.Visibility = Visibility.Visible;
+
+        // Cloud Gaming card: expose the REAL Better xCloud values (no shadow config).
+        CmbQuality.ItemsSource = Core.Services.BxcSettings.StreamQualities.Select(q => q.Label).ToList();
+        CmbGameLang.ItemsSource = Core.Services.BxcSettings.GameLocales.Select(l => l.Label).ToList();
+        CmbQuality.SelectedIndex = Math.Max(0, Core.Services.BxcSettings.StreamQualities.ToList()
+            .FindIndex(q => q.Value == Core.Services.BxcSettings.NormalizeQuality(s.BxcStreamQuality)));
+        CmbGameLang.SelectedIndex = Math.Max(0, Core.Services.BxcSettings.GameLocales.ToList()
+            .FindIndex(l => l.Value == Core.Services.BxcSettings.NormalizeGameLocale(s.BxcGameLanguage)));
+        _ = LoadLiveBxcValuesAsync();
+    }
+
+    /// <summary>Reads the CURRENT effective values straight from the live page
+    /// (localStorage["BetterXcloud"] — the exact store Better xCloud reads) and shows
+    /// them, so the user always sees the one real configuration.</summary>
+    private async Task LoadLiveBxcValuesAsync()
+    {
+        try
+        {
+            var (q, l) = await _host.ReadBxcSettingsAsync();
+            if (q is not null || l is not null)
+            {
+                var qi = Core.Services.BxcSettings.StreamQualities.ToList().FindIndex(x => x.Value == q);
+                var li = Core.Services.BxcSettings.GameLocales.ToList().FindIndex(x => x.Value == l);
+                Dispatcher.Invoke(() =>
+                {
+                    if (qi >= 0) CmbQuality.SelectedIndex = qi;
+                    if (li >= 0) CmbGameLang.SelectedIndex = li;
+                    TxtBxcLive.Text = $"القيم الفعلية الآن داخل Better xCloud: الجودة {q ?? "auto"} · لغة الألعاب {l ?? "default"}";
+                });
+            }
+            else
+            {
+                Dispatcher.Invoke(() => { TxtBxcLive.Text = "الصفحة غير مفتوحة — ستُطبَّق القيم عند فتح xCloud."; });
+            }
+        }
+        catch
+        {
+            // non-fatal: the saved values are already shown
+        }
     }
 
     public void FocusUpdateSection() => CardBxc.BringIntoView();
@@ -179,6 +222,16 @@ public partial class SettingsWindow : Window
         s.LowEndMode = ChkLowEnd.IsChecked == true;
         s.AutoUpdateBetterXcloud = ChkAutoUpdate.IsChecked == true;
         s.Language = CmbLang.SelectedIndex == 1 ? "en" : "ar";
+        s.KeepSessionOnExit = CmbKeepSession.SelectedIndex switch
+        {
+            1 => "keep", 2 => "signout", _ => "ask"
+        };
+        // REAL Better xCloud values (MainWindow applies them live after this closes)
+        s.BxcStreamQuality = CmbQuality.SelectedIndex >= 0 && CmbQuality.SelectedIndex < Core.Services.BxcSettings.StreamQualities.Count
+            ? Core.Services.BxcSettings.StreamQualities[CmbQuality.SelectedIndex].Value : "auto";
+        s.BxcGameLanguage = CmbGameLang.SelectedIndex >= 0 && CmbGameLang.SelectedIndex < Core.Services.BxcSettings.GameLocales.Count
+            ? Core.Services.BxcSettings.GameLocales[CmbGameLang.SelectedIndex].Value : "default";
         _store.Save(s);
     }
+
 }

@@ -180,6 +180,85 @@ public sealed class WebViewHost
         }
     }
 
+    /* ── Better xCloud settings bridge (v1.1) ───────────────────────────
+       One effective configuration: LATCHI UI writes THE SAME values Better xCloud
+       reads (localStorage["BetterXcloud"] of the shared profile). The onboarding seed
+       runs once per profile via document-created script BEFORE the first navigation;
+       later changes are applied live and the page is reloaded by the caller. */
+
+    /// <summary>Registers the ONE-SHOT onboarding seed (runs on document creation —
+    /// i.e. before any page script, exactly like a document-start userscript — but only
+    /// executes its payload once per profile, guarded by a localStorage flag).</summary>
+    public async Task SeedBxcSettingsAsync(string quality, string gameLocale)
+    {
+        if (Core is not { } core) throw new InvalidOperationException("webview not initialized");
+        await core.AddScriptToExecuteOnDocumentCreatedAsync(
+            global::LatchiXcloud.Core.Services.BxcSettings.BuildSeedScript(quality, gameLocale));
+        Logger.Info($"BxC settings seed registered (quality={quality}, gameLang={gameLocale}) — applies before first navigation");
+    }
+
+    /// <summary>Writes stream settings into localStorage["BetterXcloud"] on the live page
+    /// and returns true when the page confirmed. The caller should reload the page so
+    /// Better xCloud re-reads the values at document-start.</summary>
+    public async Task<bool> ApplyBxcSettingsAsync(string? quality, string? gameLocale)
+    {
+        if (Core is not { } core) return false;
+        var raw = await core.ExecuteScriptAsync(global::LatchiXcloud.Core.Services.BxcSettings.BuildApplyScript(quality, gameLocale));
+        var ok = raw.Contains("applied");
+        Logger.Info($"BxC settings applied live (quality={quality ?? "-"}, gameLang={gameLocale ?? "-"}) → {raw.Trim()}");
+        return ok;
+    }
+
+    /// <summary>Reads the CURRENT effective stream settings straight from
+    /// localStorage["BetterXcloud"] — the exact same source Better xCloud reads.</summary>
+    public async Task<(string? Quality, string? GameLang)> ReadBxcSettingsAsync()
+    {
+        if (Core is not { } core) return (null, null);
+        try
+        {
+            var raw = await core.ExecuteScriptAsync(global::LatchiXcloud.Core.Services.BxcSettings.BuildReadScript());
+            // ExecuteScriptAsync wraps the returned string literal in JSON quotes
+            var json = System.Text.Json.JsonSerializer.Deserialize<string>(raw) ?? "{}";
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            return (doc.RootElement.TryGetProperty("q", out var q) ? q.GetString() : null,
+                    doc.RootElement.TryGetProperty("l", out var l) ? l.GetString() : null);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn("Could not read BxC settings: " + ex.Message);
+            return (null, null);
+        }
+    }
+
+    /// <summary>
+    /// Signs the user out of the Microsoft session (v1.0 "sign me out on exit") by deleting the
+    /// authentication cookies — nothing else: Better xCloud's local settings are untouched.
+    /// </summary>
+    public async Task ClearLoginCookiesAsync()
+    {
+        if (Core is not { } core) return;
+        try
+        {
+            var mgr = core.Profile.CookieManager;
+            var uris = new[]
+            {
+                "https://www.xbox.com", "https://xbox.com",
+                "https://login.live.com", "https://login.microsoftonline.com", "https://account.live.com",
+            };
+            foreach (var uri in uris)
+            {
+                var cookies = await mgr.GetCookiesAsync(uri);
+                foreach (var c in cookies)
+                    mgr.DeleteCookies(c.Name, uri);
+            }
+            Logger.Info("Login session cookies cleared (user chose sign-out)");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error("Could not clear login cookies: " + ex.Message);
+        }
+    }
+
     /// <summary>URLs that should be checked for Better xCloud (they match its own @match rules).</summary>
     public bool IsBetterXcloudPage(string? url)
     {

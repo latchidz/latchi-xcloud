@@ -14,8 +14,8 @@
     <AssemblyName>LATCHI-xCLOUD</AssemblyName>
     <RootNamespace>LatchiXcloud.App</RootNamespace>
     <ApplicationIcon>..\..\assets\icon\latchi-xcloud.ico</ApplicationIcon>
-    <Version>0.1.0</Version>
-    <InformationalVersion>0.1.0</InformationalVersion>
+    <Version>1.1.0</Version>
+    <InformationalVersion>1.1.0</InformationalVersion>
     <Product>LATCHI xCLOUD</Product>
     <Company>LATCHI</Company>
     <Authors>LATCHI</Authors>
@@ -37,6 +37,11 @@
          never modified. bxc-manifest.json records its provenance (§70). -->
     <Content Include="..\..\resources\better-xcloud.user.js" Link="resources\better-xcloud.user.js" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\resources\bxc-manifest.json" Link="resources\bxc-manifest.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The same two files are ALSO embedded in the assembly so the single-file
+         portable exe is fully self-contained (BundledResources extracts them to the
+         data dir on first run when no resources/ folder exists next to the exe). -->
+    <EmbeddedResource Include="..\..\resources\better-xcloud.user.js" Link="resources\better-xcloud.user.js" />
+    <EmbeddedResource Include="..\..\resources\bxc-manifest.json" Link="resources\bxc-manifest.json" />
   </ItemGroup>
 
 </Project>
