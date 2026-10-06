@@ -257,13 +257,14 @@ public static class SmokeRunner
         var xamlDetail = "";
         try
         {
+            // smokeWin is a SHOWN window → a legal Owner; MainWindow is only parsed
+            // (Show would trigger the full WebView2 startup — parse is the crash class)
             var mw = new MainWindow();          // InitializeComponent → BAML → resources
             var fw = new FirstRunWindow();      // wizard (incl. the stream step)
-            var sw = new SettingsWindow(mw, new SettingsStore(dataDir),
+            var sw = new SettingsWindow(smokeWin, new SettingsStore(dataDir),
                 new Services.BetterXcloudRuntime(), host); // needs a real runtime+host
-            var ew = new ErrorWindow(mw, "t", "d", "ar");
+            var ew = new ErrorWindow(smokeWin, "t", "d", "ar");
             xamlDetail = "MainWindow + FirstRunWindow + SettingsWindow + ErrorWindow parsed";
-            // not Show()n — parse is the crash class; Show would need full app state
             GC.KeepAlive(mw); GC.KeepAlive(fw); GC.KeepAlive(sw); GC.KeepAlive(ew);
         }
         catch (Exception ex)
@@ -308,8 +309,12 @@ public static class SmokeRunner
             && s9.Current.KeepSessionOnExit == "ask",
             $"fullscreen={s9.Current.StartFullscreen} keep={s9.Current.KeepSessionOnExit}");
         var step = Core.Services.FirstRunFlow.InitialStep(s9.Current.FirstRunComplete);
-        step = Core.Services.FirstRunFlow.Advance(step); // language chosen → sign-in
-        Add("S9 wizard steps", step == "signin", "language→signin");
+        // v1.1: language → stream setup → sign-in (two advances)
+        var step2 = Core.Services.FirstRunFlow.Advance(step);
+        var step3 = Core.Services.FirstRunFlow.Advance(step2);
+        Add("S9 wizard steps",
+            step2 == Core.Services.FirstRunFlow.StepStream && step3 == Core.Services.FirstRunFlow.StepSignIn,
+            "language→stream→signin");
         Add("S9 sign-in url detect",
             Core.Services.FirstRunFlow.IsSignInSuccessUrl("https://www.xbox.com/en-US/auth/msa?loggedIn=true&ru=%2Fplay")
             && !Core.Services.FirstRunFlow.IsSignInSuccessUrl("https://www.xbox.com/en-US/play")
