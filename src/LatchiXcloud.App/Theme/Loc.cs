@@ -45,11 +45,6 @@ public static class Loc
         ["errBlockedNav"] = ("تم حظر فتح موقع خارج نطاق Xbox/Microsoft", "Navigation outside Xbox/Microsoft was blocked"),
 
         // settings
-        ["setProfilePic"] = ("صورة الملف الشخصي (تظهر في شاشة البدء)", "Profile picture (shown on the splash screen)"),
-        ["setChoosePic"] = ("اختيار صورة…", "Choose picture…"),
-        ["setRemovePic"] = ("إزالة", "Remove"),
-        ["setPicHint"] = ("تظهر عند الإقلاع القادم. PNG أو JPG.", "Appears on next launch. PNG or JPG."),
-        ["setStartupSound"] = ("صوت الإقلاع عند التشغيل", "Play the startup sound"),
         ["setOnExit"] = ("عند إغلاق التطبيق:", "When the app closes:"),
         ["setOnExitAsk"] = ("اسألني في كل مرة", "Ask me every time"),
         ["setOnExitKeep"] = ("أبقِ جلستي مفتوحة", "Keep me signed in"),

@@ -42,9 +42,6 @@
          data dir on first run when no resources/ folder exists next to the exe). -->
     <EmbeddedResource Include="..\..\resources\better-xcloud.user.js" Link="resources\better-xcloud.user.js" />
     <EmbeddedResource Include="..\..\resources\bxc-manifest.json" Link="resources\bxc-manifest.json" />
-    <!-- v1.0 splash chime: synthesized original composition (Xbox-inspired), embedded as a WPF
-         Resource so it works inside the single-file portable build too. -->
-    <Resource Include="..\..\assets\startup-chime.wav" Link="assets\startup-chime.wav" />
   </ItemGroup>
 
 </Project>

@@ -123,7 +123,7 @@ dotnet run --project src/LatchiXcloud.App -- --smoke   # فحص ذاتي شام�
 src/LatchiXcloud.Core     ← نواة قابلة للاختبار: إعدادات، سياسة تنقل، محلل ميتاداتا السكربت، نظام تحديث مع rollback
 src/LatchiXcloud.App      ← واجهة WPF + WebView2: شريط مخصص، جسر، تراكبات، إعدادات، تشخيصات، فحص ذاتي
 resources/                ← سكربت Better xCloud الرسمي (v6.7.12) + manifest الإسناد
-tests/                    ← 71 اختبار xUnit
+tests/                    ← 69 اختبار xUnit
 installer/                ← سكربت Inno Setup (بلا صلاحيات مدير)
 .github/workflows/build.yml ← البناء والفحص والتغليف على GitHub Actions
 ```

@@ -22,11 +22,11 @@ public partial class MainWindow : Window
     private SettingsStore _settings = null!;
     private BetterXcloudRuntime _bxc = null!;
     private WebViewHost _host = null!;
-    private readonly SplashWindow? _splash;
 
     private DispatcherTimer? _probeTimer;
     private DispatcherTimer? _toastTimer;
     private DispatcherTimer? _exitFsTimer;
+    private DispatcherTimer? _navWatchdog;
     private int _probeAttempt;
     private bool _firstNavigationDone;
     private bool _hostFullscreen;
@@ -38,9 +38,8 @@ public partial class MainWindow : Window
     private bool _awaitingSignIn;
     private bool _sessionPromptDone;
 
-    public MainWindow(SplashWindow? splash = null)
+    public MainWindow()
     {
-        _splash = splash;
         InitializeComponent();
         Loaded += OnLoaded;
         Closing += OnClosing;
@@ -75,7 +74,7 @@ public partial class MainWindow : Window
         RestoreWindowBounds();
 
         _bxc = new BetterXcloudRuntime();
-        SetSplash("Loading Better xCloud…");
+        Logger.Info("Better xCloud runtime ready (v" + _bxc.ActiveVersion + ")");
         _bxc.Initialize(); // bundled/staged/rollback — always before any page loads
 
         _host = new WebViewHost(Web);
@@ -91,7 +90,6 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             Logger.Error("WebView2 init failed: " + ex);
-            _splash?.NotifyReady();
             ShowError(Loc.S(_lang, "errWebviewTitle"),
                 "Microsoft Edge WebView2 Runtime is required.\n" + ex.Message);
             return;
@@ -103,21 +101,41 @@ public partial class MainWindow : Window
         var online = System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable();
         if (online)
         {
-            SetSplash("Connecting to Xbox Cloud Gaming…");
+            Logger.Info("Navigating to Xbox Cloud Gaming home…");
             _host.GoHome();
+            StartNavWatchdog();
         }
         else
         {
-            _splash?.NotifyReady();
             ShowError(Loc.S(_lang, "errOfflineTitle"), Loc.S(_lang, "errOfflineDetail"));
         }
 
-        // v1.0 first-run: language → Microsoft sign-in (wizard over the loading page)
+        // v1.0 first-run: language → Microsoft sign-in.
+        // DispatcherPriority.NORMAL — never Background: a continuously rendering page
+        // (xbox.com) starves Background-priority callbacks forever (the v1.0.0 hang).
         _firstRunStep = Core.Services.FirstRunFlow.InitialStep(_settings.Current.FirstRunComplete);
         if (_firstRunStep != Core.Services.FirstRunFlow.StepDone)
-            _ = Dispatcher.InvokeAsync(RunFirstRunWizard, DispatcherPriority.Background);
+            _ = Dispatcher.InvokeAsync(RunFirstRunWizard, DispatcherPriority.Normal);
         else if (_settings.Current.StartFullscreen)
             EnterHostFullscreen();
+    }
+
+    /* ── navigation watchdog: NEVER hang silently ────────────────────── */
+
+    /// <summary>If the first navigation hasn't finished within 30s, surface an actionable
+    /// error instead of sitting on a dead page forever (the v1.0.0 "stuck" symptom).</summary>
+    private void StartNavWatchdog()
+    {
+        _navWatchdog?.Stop();
+        _navWatchdog = new DispatcherTimer(DispatcherPriority.Normal) { Interval = TimeSpan.FromSeconds(30) };
+        _navWatchdog.Tick += (_, _) =>
+        {
+            _navWatchdog?.Stop();
+            if (_firstNavigationDone) return;
+            Logger.Error("First navigation did not complete within 30 seconds — showing retry screen");
+            ShowError(Loc.S(_lang, "errLoadTitle"), Loc.S(_lang, "errOfflineDetail"));
+        };
+        _navWatchdog.Start();
     }
 
     /* ── first-run wizard (v1.0) ─────────────────────────────────────── */
@@ -170,7 +188,7 @@ public partial class MainWindow : Window
         if (!_firstNavigationDone)
         {
             _firstNavigationDone = true;
-            _splash?.NotifyReady(); // the animated splash fades out — the page takes over
+            _navWatchdog?.Stop();
             if (!e.IsSuccess)
             {
                 if (System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
@@ -513,8 +531,6 @@ public partial class MainWindow : Window
         };
     }
 
-    private void SetSplash(string status) => _splash?.SetStatus(status);
-
     public void ShowToast(string text)
     {
         ToastText.Text = text;
@@ -522,7 +538,7 @@ public partial class MainWindow : Window
         ToastPopup.VerticalOffset = Math.Max(8, Web.ActualHeight - 70);
         ToastPopup.IsOpen = true;
         _toastTimer?.Stop();
-        _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
+        _toastTimer = new DispatcherTimer(DispatcherPriority.Normal) { Interval = TimeSpan.FromSeconds(4) };
         _toastTimer.Tick += (_, _) => { ToastPopup.IsOpen = false; _toastTimer.Stop(); };
         _toastTimer.Start();
     }

@@ -40,45 +40,4 @@ public class FirstRunTests
     [InlineData(null, "ask")]
     public void NormalizeKeepChoice_OnlyKnownValues(string? choice, string expected)
         => Assert.Equal(expected, FirstRunFlow.NormalizeKeepChoice(choice));
-
-    [Fact]
-    public void ProfilePicture_InstallFindRemove()
-    {
-        var dir = Path.Combine(Path.GetTempPath(), "latchi-tests-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        try
-        {
-            Assert.Null(ProfileImage.FindExisting(dir));
-
-            var src = Path.Combine(dir, "me.png");
-            File.WriteAllBytes(src, new byte[] { 1, 2, 3 });
-            var stored = ProfileImage.Install(src, dir);
-            Assert.Equal(Path.Combine(dir, "profile-image.png"), stored);
-            Assert.Equal(stored, ProfileImage.FindExisting(dir));
-
-            ProfileImage.Remove(dir);
-            Assert.Null(ProfileImage.FindExisting(dir));
-        }
-        finally
-        {
-            try { Directory.Delete(dir, true); } catch { }
-        }
-    }
-
-    [Fact]
-    public void ProfilePicture_RejectsUnsupportedType()
-    {
-        var dir = Path.Combine(Path.GetTempPath(), "latchi-tests-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        try
-        {
-            var src = Path.Combine(dir, "me.gif");
-            File.WriteAllBytes(src, new byte[] { 1 });
-            Assert.Throws<InvalidOperationException>(() => ProfileImage.Install(src, dir));
-        }
-        finally
-        {
-            try { Directory.Delete(dir, true); } catch { }
-        }
-    }
 }

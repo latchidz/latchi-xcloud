@@ -226,14 +226,34 @@ public static class SmokeRunner
             Add("S8 blocked navigation", true, "skipped — no network (NOT TESTED live)");
         }
 
+        /* ── S10: REAL xbox.com navigation must COMPLETE — never hang ────
+           (This is the exact navigation that hung on a real user machine in v1.0.0.
+            The page may fail from a datacenter IP — that's fine; hanging is not.) */
+        if (System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
+        {
+            var realTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            void RealDone(object? s2, Microsoft.Web.WebView2.Core.CoreWebView2NavigationCompletedEventArgs ev2)
+                => realTcs.TrySetResult(true);
+            wv.CoreWebView2!.NavigationCompleted += RealDone;
+            wv.CoreWebView2.Navigate("https://www.xbox.com/play");
+            var done = await Task.WhenAny(realTcs.Task, Task.Delay(TimeSpan.FromSeconds(45))) == realTcs.Task;
+            wv.CoreWebView2.NavigationCompleted -= RealDone;
+            Add("S10 real xbox.com navigation completes", done,
+                done ? "navigation completed (no hang)" : "HUNG >45s — exactly the reported bug");
+        }
+        else
+        {
+            Add("S10 real xbox.com navigation completes", true, "skipped — no network (NOT TESTED live)");
+        }
+
         smokeWin.Close();
         await Task.Delay(300);
 
-        /* ── S9: v1.0 first-run wizard + session choice + profile picture ── */
+        /* ── S9: v1.0 first-run wizard + session choice ── */
         var s9 = new SettingsStore(dataDir);
         Add("S9 first-run defaults",
-            !s9.Current.FirstRunComplete && s9.Current.StartFullscreen
-            && s9.Current.KeepSessionOnExit == "ask" && s9.Current.PlayStartupSound,
+            !s9.Current.FirstRunComplete && !s9.Current.StartFullscreen
+            && s9.Current.KeepSessionOnExit == "ask",
             $"fullscreen={s9.Current.StartFullscreen} keep={s9.Current.KeepSessionOnExit}");
         var step = Core.Services.FirstRunFlow.InitialStep(s9.Current.FirstRunComplete);
         step = Core.Services.FirstRunFlow.Advance(step); // language chosen → sign-in
@@ -249,19 +269,6 @@ public static class SmokeRunner
         s9.Save();
         var s9b = new SettingsStore(dataDir);
         Add("S9 wizard persisted", s9b.Current.FirstRunComplete && s9b.Current.KeepSessionOnExit == "signout");
-        File.WriteAllBytes(Path.Combine(dataDir, "profile-image.png"), new byte[] { 1, 2, 3 });
-        Add("S9 profile picture found",
-            Core.Services.ProfileImage.FindExisting(dataDir)?.EndsWith("profile-image.png", StringComparison.Ordinal) == true);
-        Core.Services.ProfileImage.Remove(dataDir);
-        Add("S9 profile picture removed", Core.Services.ProfileImage.FindExisting(dataDir) is null);
-        var chimeOk = false;
-        try
-        {
-            chimeOk = System.Windows.Application.GetResourceStream(
-                new Uri("pack://application:,,,/assets/startup-chime.wav")) is not null;
-        }
-        catch { }
-        Add("S9 startup chime asset", chimeOk, "embedded WAV resource");
     }
 
     /// <summary>JS that re-tests the generated @match regexes inside the real engine.</summary>

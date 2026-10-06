@@ -25,7 +25,6 @@ public partial class SettingsWindow : Window
         var s = store.Current;
         ChkMaximized.IsChecked = s.StartMaximized;
         ChkFullscreen.IsChecked = s.StartFullscreen;
-        ChkStartupSound.IsChecked = s.PlayStartupSound;
         ChkLowEnd.IsChecked = s.LowEndMode;
         ChkAutoUpdate.IsChecked = s.AutoUpdateBetterXcloud;
         CmbLang.SelectedIndex = s.Language == "en" ? 1 : 0;
@@ -33,7 +32,6 @@ public partial class SettingsWindow : Window
         {
             "keep" => 1, "signout" => 2, _ => 0
         };
-        UpdatePicStatus();
         TxtBxcVersion.Text = "v" + _bxc.ActiveVersion;
         if (_bxc.ActiveManifest.UpstreamCommit.Length >= 7)
             TxtBxcSource.Text = "المصدر الرسمي: redphx/better-xcloud @ " + _bxc.ActiveManifest.UpstreamCommit[..7];
@@ -182,7 +180,6 @@ public partial class SettingsWindow : Window
         var s = _store.Current;
         s.StartMaximized = ChkMaximized.IsChecked == true;
         s.StartFullscreen = ChkFullscreen.IsChecked == true;
-        s.PlayStartupSound = ChkStartupSound.IsChecked == true;
         s.LowEndMode = ChkLowEnd.IsChecked == true;
         s.AutoUpdateBetterXcloud = ChkAutoUpdate.IsChecked == true;
         s.Language = CmbLang.SelectedIndex == 1 ? "en" : "ar";
@@ -193,38 +190,4 @@ public partial class SettingsWindow : Window
         _store.Save(s);
     }
 
-    /* ── profile picture (shown on the v1.0 splash screen) ───────────── */
-
-    private void UpdatePicStatus()
-    {
-        var pic = Core.Services.ProfileImage.FindExisting(AppPaths.DataDir);
-        TxtPicStatus.Text = pic is not null
-            ? System.IO.Path.GetFileName(pic) + " — تظهر عند الإقلاع القادم."
-            : "لم تُحدَّد بعد. تظهر عند الإقلاع القادم. PNG أو JPG.";
-    }
-
-    private void BtnChoosePic_Click(object sender, RoutedEventArgs e)
-    {
-        var dlg = new Microsoft.Win32.OpenFileDialog
-        {
-            Title = "اختيار صورة الملف الشخصي",
-            Filter = "Images (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg",
-        };
-        if (dlg.ShowDialog(this) != true) return;
-        try
-        {
-            Core.Services.ProfileImage.Install(dlg.FileName, AppPaths.DataDir);
-            UpdatePicStatus();
-        }
-        catch (Exception ex)
-        {
-            Dialogs.Alert(this, "تعذّر حفظ الصورة: " + ex.Message, "صورة الملف الشخصي");
-        }
-    }
-
-    private void BtnRemovePic_Click(object sender, RoutedEventArgs e)
-    {
-        Core.Services.ProfileImage.Remove(AppPaths.DataDir);
-        UpdatePicStatus();
-    }
 }
