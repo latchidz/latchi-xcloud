@@ -56,7 +56,10 @@ jobs:
         shell: pwsh
         run: |
           $v = "${env:GITHUB_REF_NAME}" -replace '^v',''
-          if ([string]::IsNullOrWhiteSpace($v) -or $v -notmatch '^\d+\.\d+\.\d+') { $v = '1.0.0' }
+          if ([string]::IsNullOrWhiteSpace($v) -or $v -notmatch '^\d+\.\d+\.\d+') {
+            # no tag → the ONE source of truth: the app csproj <Version>
+            $v = (Select-Xml -Path 'src/LatchiXcloud.App/LatchiXcloud.App.csproj' -XPath '//Version').Node.InnerText.Trim()
+          }
           "VERSION=$v" | Out-File -FilePath $env:GITHUB_ENV -Append
           Write-Host "Version: $v"
 
