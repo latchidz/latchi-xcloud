@@ -279,7 +279,7 @@ public static class SmokeRunner
         if (System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
         {
             // register the seed (what the onboarding does before the FIRST navigation)
-            await host.SeedBxcSettingsAsync("1080p", "en-US");
+            await host.SeedBxcSettingsAsync("1080p", "en-US", "WestEurope");
             // navigate for real
             var seedTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             void SeedDone(object? s3, Microsoft.Web.WebView2.Core.CoreWebView2NavigationCompletedEventArgs ev3)
@@ -289,10 +289,10 @@ public static class SmokeRunner
             var seeded = await Task.WhenAny(seedTcs.Task, Task.Delay(TimeSpan.FromSeconds(45))) == seedTcs.Task;
             wv.CoreWebView2.NavigationCompleted -= SeedDone;
             await Task.Delay(1200); // let document-created scripts settle
-            var (qRead, lRead) = await host.ReadBxcSettingsAsync();
+            var (qRead, lRead, rRead) = await host.ReadBxcSettingsAsync();
             Add("S12 settings bridge end-to-end",
-                seeded && qRead == "1080p" && lRead == "en-US",
-                $"seeded={seeded} quality={qRead} gameLang={lRead} (read back from localStorage[\"BetterXcloud\"])");
+                seeded && qRead == "1080p" && lRead == "en-US" && rRead == "WestEurope",
+                $"seeded={seeded} quality={qRead} gameLang={lRead} region={rRead} (read back from localStorage[\"BetterXcloud\"])");
         }
         else
         {
@@ -309,12 +309,19 @@ public static class SmokeRunner
             && s9.Current.KeepSessionOnExit == "ask",
             $"fullscreen={s9.Current.StartFullscreen} keep={s9.Current.KeepSessionOnExit}");
         var step = Core.Services.FirstRunFlow.InitialStep(s9.Current.FirstRunComplete);
-        // v1.1: language → stream setup → sign-in (two advances)
+        // v1.2 §9: language → quality → server → game language → VPN → sign-in (five advances)
         var step2 = Core.Services.FirstRunFlow.Advance(step);
         var step3 = Core.Services.FirstRunFlow.Advance(step2);
+        var step4 = Core.Services.FirstRunFlow.Advance(step3);
+        var step5 = Core.Services.FirstRunFlow.Advance(step4);
+        var step6 = Core.Services.FirstRunFlow.Advance(step5);
         Add("S9 wizard steps",
-            step2 == Core.Services.FirstRunFlow.StepStream && step3 == Core.Services.FirstRunFlow.StepSignIn,
-            "language→stream→signin");
+            step2 == Core.Services.FirstRunFlow.StepQuality
+            && step3 == Core.Services.FirstRunFlow.StepServer
+            && step4 == Core.Services.FirstRunFlow.StepGameLang
+            && step5 == Core.Services.FirstRunFlow.StepVpn
+            && step6 == Core.Services.FirstRunFlow.StepSignIn,
+            "language→quality→server→gamelang→vpn→signin");
         Add("S9 sign-in url detect",
             Core.Services.FirstRunFlow.IsSignInSuccessUrl("https://www.xbox.com/en-US/auth/msa?loggedIn=true&ru=%2Fplay")
             && !Core.Services.FirstRunFlow.IsSignInSuccessUrl("https://www.xbox.com/en-US/play")

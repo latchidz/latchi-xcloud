@@ -14,10 +14,11 @@ public static class NavigationPolicy
         "xbox.com",            // Xbox Cloud Gaming (www.xbox.com/*/play) + auth/msa callback
         "xboxlive.com",        // Xbox Live services that occasionally navigate top-level
         "live.com",            // login.live.com, account.live.com, signup.live.com
-        "microsoft.com",       // login.microsoftonline.com redirects / account.microsoft.com
+        "microsoft.com",       // login.microsoft.com redirects / account.microsoft.com
         "microsoftonline.com", // AAD login (work/school accounts on xCloud)
-        "msauth.net",          // MS auth statics/flow
-        "msftauth.net",        // MS auth CDN
+        "microsoftonline-p.com", // AAD backend channel (official MS auth safelist)
+        "msauth.net",          // MS auth statics/flow (aadcdn.msauth.net)
+        "msftauth.net",        // MS auth CDN (aadcdn/logincdn.msftauth.net)
         "msftauthimages.net",  // MS auth images
         "passport.net",        // legacy passport flows
         "azureedge.net",       // MS CDN redirects during login

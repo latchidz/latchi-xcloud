@@ -8,7 +8,7 @@
 #define MyAppName "LATCHI xCLOUD"
 #define MyAppExeName "LATCHI-xCLOUD.exe"
 #ifndef MyAppVersion
-#define MyAppVersion "1.1.0"
+#define MyAppVersion "1.2.0"
 #endif
 
 [Setup]

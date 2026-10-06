@@ -38,6 +38,14 @@ public partial class DiagnosticsWindow : Window
         Add("الشبكة", System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable() ? "متاحة" : "غير متاحة");
         Add("وضع الجهاز الضعيف", "غير مفعّل / مفعّل (لا يؤثر على تسريع العتاد)");
 
+        // v1.2: sanitized navigation history — see exactly where the auth flow went
+        var navLog = _host.SnapshotNavigationLog();
+        if (navLog.Length > 0)
+        {
+            Add("آخر عمليات التنقل (منقَّحة — بلا رموز دخول)",
+                string.Join("\n", navLog.TakeLast(14)));
+        }
+
         // GPU / WebGL / gamepads — probed inside the live webview document
         try
         {

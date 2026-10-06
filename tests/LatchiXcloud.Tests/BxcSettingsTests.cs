@@ -69,6 +69,47 @@ public class BxcSettingsTests
     }
 
     [Fact]
+    public void ServerRegions_AreTheRealV6712List()
+    {
+        // v1.2 §8: server.region options from the BUNDLED v6.7.12 script (SERVER_EXTRA_INFO
+        // keys, uppercase) — 19 regions + Auto, incl. the France entry (WestEurope),
+        // never invented.
+        var src = BxcSource();
+        Assert.Equal(20, BxcSettings.ServerRegions.Count); // 19 regions + default
+        Assert.Equal(19, BxcSettings.ServerRegions.Count(r => r.Value != "default"));
+        Assert.Contains(BxcSettings.ServerRegions, r => r.Value == "WestEurope");   // France
+        Assert.Contains(BxcSettings.ServerRegions, r => r.Value == "default");
+        foreach (var r in BxcSettings.ServerRegions.Where(r => r.Value != "default"))
+            Assert.Contains(r.Value.ToUpperInvariant() + ":", src); // e.g. WESTEUROPE: (SERVER_EXTRA_INFO key)
+    }
+
+    [Fact]
+    public void NormalizeRegion_OnlyKnownPascalCaseValues()
+    {
+        // BxC matches server.region EXACTLY (PascalCase keys of the live list) — anything
+        // else is a silent NO-OP inside BxC, so we normalize it to default instead
+        Assert.Equal("WestEurope", BxcSettings.NormalizeRegion("WestEurope"));
+        Assert.Equal("default", BxcSettings.NormalizeRegion("westeurope")); // case-sensitive by design
+        Assert.Equal("default", BxcSettings.NormalizeRegion("france"));
+        Assert.Equal("default", BxcSettings.NormalizeRegion("Mars"));
+        Assert.Equal("default", BxcSettings.NormalizeRegion(null));
+        Assert.Equal("default", BxcSettings.NormalizeRegion(""));
+    }
+
+    [Fact]
+    public void RegionScript_WritesServerRegion_IntoTheRealStore()
+    {
+        // seed + apply + read must all carry the region through the same
+        // localStorage["BetterXcloud"] store Better xCloud reads (§11 one source of config)
+        Assert.Contains("server", BxcSettings.BuildSeedScript("auto", "default", "WestEurope"));
+        Assert.Contains("WestEurope", BxcSettings.BuildSeedScript("auto", "default", "WestEurope"));
+        Assert.DoesNotContain("WestEurope", BxcSettings.BuildSeedScript("auto", "default", null));
+        Assert.Contains("WestEurope", BxcSettings.BuildApplyScript(null, null, "WestEurope"));
+        var read = BxcSettings.BuildReadScript();
+        Assert.Contains("server", read);
+    }
+
+    [Fact]
     public void SeedScript_IsOneShot_AndWritesChosenValues()
     {
         var js = BxcSettings.BuildSeedScript("1080p", "en-US");

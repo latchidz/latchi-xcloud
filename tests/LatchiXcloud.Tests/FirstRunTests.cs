@@ -13,11 +13,14 @@ public class FirstRunTests
     }
 
     [Fact]
-    public void Advance_WalksLanguageToStreamToSignInToDone()
+    public void Advance_WalksTheFullV12Order()
     {
-        // v1.1: language → stream setup (REAL BxC values) → sign-in → done
-        Assert.Equal(FirstRunFlow.StepStream, FirstRunFlow.Advance(FirstRunFlow.StepLanguage));
-        Assert.Equal(FirstRunFlow.StepSignIn, FirstRunFlow.Advance(FirstRunFlow.StepStream));
+        // v1.2 §9 order: language → quality → server/region → game language → VPN (optional) → sign-in → done
+        Assert.Equal(FirstRunFlow.StepQuality, FirstRunFlow.Advance(FirstRunFlow.StepLanguage));
+        Assert.Equal(FirstRunFlow.StepServer, FirstRunFlow.Advance(FirstRunFlow.StepQuality));
+        Assert.Equal(FirstRunFlow.StepGameLang, FirstRunFlow.Advance(FirstRunFlow.StepServer));
+        Assert.Equal(FirstRunFlow.StepVpn, FirstRunFlow.Advance(FirstRunFlow.StepGameLang));
+        Assert.Equal(FirstRunFlow.StepSignIn, FirstRunFlow.Advance(FirstRunFlow.StepVpn));
         Assert.Equal(FirstRunFlow.StepDone, FirstRunFlow.Advance(FirstRunFlow.StepSignIn));
         Assert.Equal(FirstRunFlow.StepDone, FirstRunFlow.Advance(FirstRunFlow.StepDone));
         Assert.Equal(FirstRunFlow.StepDone, FirstRunFlow.Advance("garbage"));

@@ -39,13 +39,42 @@ public partial class SettingsWindow : Window
 
         // Cloud Gaming card: expose the REAL Better xCloud values (no shadow config).
         CmbQuality.ItemsSource = Core.Services.BxcSettings.StreamQualities.Select(q => q.Label).ToList();
+        CmbServer.ItemsSource = Core.Services.BxcSettings.ServerRegions.Select(r => r.Label).ToList();
         CmbGameLang.ItemsSource = Core.Services.BxcSettings.GameLocales.Select(l => l.Label).ToList();
         CmbQuality.SelectedIndex = Math.Max(0, Core.Services.BxcSettings.StreamQualities.ToList()
             .FindIndex(q => q.Value == Core.Services.BxcSettings.NormalizeQuality(s.BxcStreamQuality)));
+        CmbServer.SelectedIndex = Math.Max(0, Core.Services.BxcSettings.ServerRegions.ToList()
+            .FindIndex(r => r.Value == Core.Services.BxcSettings.NormalizeRegion(s.BxcServerRegion)));
         CmbGameLang.SelectedIndex = Math.Max(0, Core.Services.BxcSettings.GameLocales.ToList()
             .FindIndex(l => l.Value == Core.Services.BxcSettings.NormalizeGameLocale(s.BxcGameLanguage)));
         _ = LoadLiveBxcValuesAsync();
+
+        // Connection helper card (external Planet VPN — detect/open/status only)
+        RefreshVpnStatus();
     }
+
+    private void RefreshVpnStatus()
+    {
+        var installed = Services.VpnHelper.IsInstalled;
+        var (connected, ifName, detail) = Services.VpnHelper.GetConnectionStatus();
+        TxtVpnStatus.Text =
+            (connected, installed) switch
+            {
+                (true, _) => "الحالة: متصل — " + detail,
+                (false, true) => "الحالة: غير متصل — Planet VPN مثبت؛ افتحه واتصل يدوياً ثم افحص الحالة.",
+                (false, false) => "الحالة: Planet VPN غير مثبت على هذا الجهاز. ثبّته من موقعه الرسمي إن احتجته.",
+            };
+        BtnVpnOpen.Visibility = installed ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void BtnVpnOpen_Click(object sender, RoutedEventArgs e)
+    {
+        if (!Services.VpnHelper.TryOpenClient())
+            Dialogs.Alert(this, "لم يُعثر على Planet VPN. ثبّته من الموقع الرسمي freevpnplanet.com.", "مساعد الاتصال");
+        RefreshVpnStatus();
+    }
+
+    private void BtnVpnCheck_Click(object sender, RoutedEventArgs e) => RefreshVpnStatus();
 
     /// <summary>Reads the CURRENT effective values straight from the live page
     /// (localStorage["BetterXcloud"] — the exact store Better xCloud reads) and shows
@@ -54,16 +83,18 @@ public partial class SettingsWindow : Window
     {
         try
         {
-            var (q, l) = await _host.ReadBxcSettingsAsync();
-            if (q is not null || l is not null)
+            var (q, l, r) = await _host.ReadBxcSettingsAsync();
+            if (q is not null || l is not null || r is not null)
             {
                 var qi = Core.Services.BxcSettings.StreamQualities.ToList().FindIndex(x => x.Value == q);
+                var ri = Core.Services.BxcSettings.ServerRegions.ToList().FindIndex(x => x.Value == (r ?? "default"));
                 var li = Core.Services.BxcSettings.GameLocales.ToList().FindIndex(x => x.Value == l);
                 Dispatcher.Invoke(() =>
                 {
                     if (qi >= 0) CmbQuality.SelectedIndex = qi;
+                    if (ri >= 0) CmbServer.SelectedIndex = ri;
                     if (li >= 0) CmbGameLang.SelectedIndex = li;
-                    TxtBxcLive.Text = $"القيم الفعلية الآن داخل Better xCloud: الجودة {q ?? "auto"} · لغة الألعاب {l ?? "default"}";
+                    TxtBxcLive.Text = $"القيم الفعلية الآن داخل Better xCloud: الجودة {q ?? "auto"} · الخادم {(r is null or "default" ? "تلقائي" : r)} · لغة الألعاب {l ?? "default"}";
                 });
             }
             else
@@ -229,6 +260,8 @@ public partial class SettingsWindow : Window
         // REAL Better xCloud values (MainWindow applies them live after this closes)
         s.BxcStreamQuality = CmbQuality.SelectedIndex >= 0 && CmbQuality.SelectedIndex < Core.Services.BxcSettings.StreamQualities.Count
             ? Core.Services.BxcSettings.StreamQualities[CmbQuality.SelectedIndex].Value : "auto";
+        s.BxcServerRegion = CmbServer.SelectedIndex >= 0 && CmbServer.SelectedIndex < Core.Services.BxcSettings.ServerRegions.Count
+            ? Core.Services.BxcSettings.ServerRegions[CmbServer.SelectedIndex].Value : "default";
         s.BxcGameLanguage = CmbGameLang.SelectedIndex >= 0 && CmbGameLang.SelectedIndex < Core.Services.BxcSettings.GameLocales.Count
             ? Core.Services.BxcSettings.GameLocales[CmbGameLang.SelectedIndex].Value : "default";
         _store.Save(s);

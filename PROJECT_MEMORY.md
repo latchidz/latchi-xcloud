@@ -44,8 +44,8 @@ WebView2 SDK **1.0.4258.31**؛ Runtime = Evergreen المثبت مع ويندو�
 
 ## Security
 
-- **سياسة التنقل** (`NavigationPolicy`): قائمة لواحق نطاقات Microsoft/Xbox فقط (xbox.com, xboxlive.com, live.com, microsoft.com, microsoftonline.com, msauth.net, msftauth.net, msftauthimages.net, passport.net, azureedge.net) + عن بُعد حسب اللاحقة (dot-anchored — `evil-notxbox.com` مرفوض). أي شيء آخر: NavigationStarting يُلغى
-- **النوافذ المنبثقة:** NewWindowRequested → دائماً Handled؛ المسموح يتحول لتنقل في نفس النافذة (المصادقة تبقى بالجلسة)، غير المسموح يُحظر + سجل
+- **سياسة التنقل** (`NavigationPolicy`): قائمة لواحق نطاقات Microsoft/Xbox فقط (xbox.com, xboxlive.com, live.com, microsoft.com, microsoftonline.com, microsoftonline-p.com, msauth.net, msftauth.net, msftauthimages.net, passport.net, azureedge.net) + عن بُعد حسب اللاحقة (dot-anchored — `evil-notxbox.com` مرفوض). أي شيء آخر: NavigationStarting يُلغى
+- **النوافذ المنبثقة:** NewWindowRequested → دائماً Handled؛ المسموح يتحول لتنقل في نفس النافذة (المصادقة تبقى بالجلسة والرؤية مضمونة — v1.2)، غير المسموح يُحظر + سجل منقّح
 - **التنزيلات:** DownloadStarting → إلغاء دائماً
 - **الصلاحيات:** رفض افتراضي؛ الميكروفون مسموح لxbox.com فقط (دردشة صوتية)
 - **لا Host Objects** مكشوفة للصفحة — الجسر رسائل JSON فقط (postMessage→WebMessageReceived بتحقق صارم للأنواع)
@@ -92,6 +92,26 @@ GitHub Actions `build.yml`: build → **55 xUnit** → publish (win-x64 self-con
 - **جسر الإعدادات الفعلي (§8)**: LATCHI UI → BxcSettings (Core) → `localStorage["BetterXcloud"]` → BxC نفسه. القيم من السكربت الرسمي حرفياً: `stream.video.resolution` = auto/720p/1080p/1080p-hq؛ `stream.locale` = default + 29 لغة (بينها ar-SA)؛ **المنطقة `server.region` ديناميكية من الخدمة داخل الصفحة** (STATES.serverRegions — ليست على window، لا يمكن قراءتها من المضيف) ← onboarding/الإعدادات تعرض Auto + إحالة لقائمة BxC الحية؛ `getGlobalPref/setGlobalPref` داخل IIFE (ليست على window) لذا القناة الوحيدة الصادقة = localStorage مباشرة: seed مرة واحدة قبل أول تنقل (document-created + علم BetterXcloud.Latchi.Seeded) ثم قراءة/كتابة حية عبر ExecuteScriptAsync + reload. لغة واجهة BxC نفسها (`bx.locale`) لا تدعم العربية (SUPPORTED_LANGUAGES بلا ar) — لغة LATCHI مستقلة تماماً.
 - **S12 جديد**: الجسر نهاية-إلى-نهاية في CI — seed ب1080p/en-US قبل تنقل حقيقي إلى xbox.com ثم قراءة localStorage داخل الصفحة والمطابقة.
 - **الاختبارات 83** (كانت 69): +7 BxcSettings (المخطط مطابق حرفياً للسكربت) +6 XamlBrush + تحديث FirstRun. الإصدار 1.1.0.
+
+## v1.2.0 (6 أكتوبر 2026) — إصلاح شاشة الدخول الفارغة + خادم BxC + مساعد VPN
+
+**قضية المستخدم الحرجية**: بعد الضغط على «تسجيل الدخول» تظهر شاشة فارغة ولا يحدث شيء. التشخيص الهندسي (سجل منقّح + سلسلة أحداث):
+- **السبب الأرجح (جغرافي)**: xCloud غير متاح من IP الجزائر بلا VPN — صفحة /play تُحمَّل «بنجاح» لكنها شبه فارغة (المستخدم نفسه ذكر حاجته لاتصال فرنسا). الحل ليس تقنياً بل **إخبار صريح**: كاشف DOM فارغ + رسالة توفّر جغرافي + مساعد VPN خارجي.
+- **التحليل التقني للنافذة المنبثقة**: `NewWindowRequested` لم يكن يوجَّه إلى أي مكان مرئي (تم إلغاؤه/تجاهله) ← أي «فتح تسجيل الدخول في نافذة جديدة» يعني لا شيء على الشاشة. **القرار النهائي (بعد استبعاد AuthWindow نهائياً — انظر الدرس)**: `e.Handled=true` + popup المسموح → `core.Navigate(uri)` في نفس النافذة — المصادقة تبقى داخل الجلسة والرؤية مضمونة.
+- **نافذة مصادقة مستقلة (AuthWindow) مستحيلة بأمان**: `e.NewWindow` يتطلب CoreWebView2 مهيّأ داخل المعالج المتزامن؛ انتظار التهيئة بشكل متزامن على UI thread = deadlock (continuation يُجدوَل على Dispatcher محجوز)؛ وWebView2 جاهز مسبقاً مخفي يخالف قاعدة «لا عمليات مساعدة غير ضرورية». **لا تُعاد المحاولة أبداً.**
+- **microsoftonline-p.com** كان ناقصاً من allowlist (قائمة Microsoft الرسمية تشمل `*.aadcdn.microsoftonline-p.com` و`*.microsoftonline-p.com`) — أُضيف. سلسلة إعادة توجيه AAD كاملة الآن مغطاة بلا فتح التنقل.
+
+**ما بُني في v1.2.0:**
+1. **طبقة تحميل مرئية**: شعار LATCHI (BackPanel) يظهر قبل أول تنقل؛ عند NavigationStarted: البانل يختفي + WebView يظهر + `LoadingPopup` («جارٍ تحميل صفحة Microsoft…»، أيقونة سحابة تنبض DoubleAnimation) — يُخفى عند ContentLoaded أو بعد اكتمال ناجح +1.5ث. لا شاشة فارغة صامتة أبداً.
+2. **كاشف الصفحة الفارغة**: بعد NavigationCompleted ناجح +6ث → `IsPageEmptyAsync()` (ExecuteScriptAsync: body.innerText.trim().length + childElementCount) → إن كانت فارغة: `emptyPageTitle/emptyPageDetail` (توفّر جغرافي + مساعد VPN) + Retry/Diagnostics.
+3. **سجل تنقّل منقّح** (`NavigationLog`، 60 خط): start/content/done(ok/fail)/popup/blocked — التمثيل عبر `Sanitize()` (قَطع query strings، حد 160). يظهر في DiagnosticsWindow. **ConsoleMessageLogged غير موجود في WebView2** (خطأ شائع من CefSharp) — البديل: `ConsoleTapJs` document-created script يلتقط window.onerror/unhandledrejection → postMessage {type:'js-error'} → سجل فقط.
+4. **الخادم/المنطقة (server.region)**: `RegionOption`/`ServerRegions` (20 = Auto + 19 منطقة PascalCase من `SERVER_EXTRA_INFO` في السكربت المدمج؛ France=WestEurope) + `NormalizeRegion` (مطابقة حرفية؛ قيمة خاطئة=default لا no-op صامت). seed/apply/read تنقل الخادم عبر نفس `localStorage["BetterXcloud"]`. الإعداد في onboarding + Settings + S12 يتحقق نهاية-إلى-نهاية بWestEurope.
+5. **معالج أول تشغيل 6 خطوات** (§9): language→quality→server→gamelang→vpn→signin (StepStream حُذف). FirstRunWindow أُعيدت كتابته كلياً: CmbQuality/CmbServer/CmbGameLang من BxcSettings، خطوة VPN بكشف/فتح/حالة Planet VPN، خصائص SelectedLanguage/SelectedStreamQuality/SelectedServerRegion/SelectedGameLanguage/Result.
+6. **VpnHelper (خدمة جديدة)**: كشف Planet VPN المثبت (ProgramFiles/LocalAppData + planet*.exe + اختصارات Start Menu) / TryOpenClient (Process.Start على المسار المكتشف) / GetConnectionStatus (فحص محلي واحد: NetworkInterface من نوع Ppp/Tunnel — اسم الواجهة فقط، **لا ادعاء بلد/فرنسا بلا تحقق، لا استعلام IP متكرر**). **تكامل خارجي صرف** — لا نسخ ملفات، لا تثبيت صامت، لا بروكسي، لا reverse engineering (لا CLI/API/deep-link موثق للعميل — تم التحقق من support.freevpnplanet.com).
+7. **بطاقة VPN في Settings** + خادم في بطاقة البث + قراءة حية تشمل الخادم.
+8. **إصلاح الماوس (طلب المستخدم بالدارجة)**: `WindowChrome.IsHitTestVisibleInChrome="True"` على ChipBxc وStackPanel شريط الأدوات — hover+click يعملان داخل منطقة العنوان.
+9. **الاختبارات 89** (كانت 83): +ServerRegions (20/19/WestEurope/مفاتيح حرفية) +NormalizeRegion +RegionScript +خطوات 6 +microsoftonline-p.com +LocTests (كل Loc.S المستخدمة موجودة + مفاتيح v1.2). الإصدار 1.2.0 (csproj + iss fallback).
+10. **لا سباق إطلاق لل WebView**: Web يبدأ Collapsed ويظهر عند أول NavigationStarted (GoHome يليه دائماً NavigationStarted الذي يكشفه).
 
 ## ⛔ درس حرج: أبداً PushFrame متداخلة مع WebView2 (5 أكتوبر 2026)
 

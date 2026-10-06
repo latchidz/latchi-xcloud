@@ -37,6 +37,7 @@ public static class BxcSettings
 
     public sealed record QualityOption(string Value, string Label);
     public sealed record LocaleOption(string Value, string Label);
+    public sealed record RegionOption(string Value, string Label, string Continent);
 
     /// <summary>Target resolution options exactly as defined in Better xCloud v6.7.12
     /// (options of "stream.video.resolution": auto / 720p / 1080p / 1080p-hq).</summary>
@@ -92,14 +93,52 @@ public static class BxcSettings
     public static string NormalizeGameLocale(string? value) =>
         GameLocales.Any(l => l.Value == value) ? value! : "default";
 
+    /// <summary>Server/region options — VERBATIM from the bundled script's own
+    /// XcloudInterceptor.SERVER_EXTRA_INFO table (v6.7.12). The stored value is the
+    /// live region name exactly as the xCloud offering API returns it (PascalCase,
+    /// e.g. "WestEurope" — proven by the script: region.name.toUpperCase() is the
+    /// SERVER_EXTRA_INFO key). An unknown value is silently IGNORED by BxC (stays
+    /// Auto), so a stale entry can never break streaming — worst case it is a no-op.
+    /// The live list (including any brand-new datacenter) is always visible inside
+    /// Better xCloud's own settings page in the xCloud UI.</summary>
+    public static readonly IReadOnlyList<RegionOption> ServerRegions = new RegionOption[]
+    {
+        new("default", "تلقائي — أقرب خادم (الموصى به) · Auto", ""),
+        new("WestEurope", "غرب أوروبا (هولندا)", "europe"),
+        new("SwedenCentral", "وسط السويد", "europe"),
+        new("UKSouth", "جنوب المملكة المتحدة", "europe"),
+        new("EastUS", "شرق أمريكا", "america-north"),
+        new("EastUS2", "شرق أمريكا 2", "america-north"),
+        new("NorthCentralUS", "شمال وسط أمريكا", "america-north"),
+        new("SouthCentralUS", "جنوب وسط أمريكا", "america-north"),
+        new("WestUS", "غرب أمريكا", "america-north"),
+        new("WestUS2", "غرب أمريكا 2", "america-north"),
+        new("WestUS3", "غرب أمريكا 3", "america-north"),
+        new("MexicoCentral", "وسط المكسيك", "america-north"),
+        new("BrazilSouth", "جنوب البرازيل", "america-south"),
+        new("ChileCentral", "وسط تشيلي", "america-south"),
+        new("JapanEast", "شرق اليابان", "asia"),
+        new("KoreaCentral", "وسط كوريا", "asia"),
+        new("CentralIndia", "وسط الهند", "asia"),
+        new("SouthIndia", "جنوب الهند", "asia"),
+        new("AustraliaEast", "شرق أستراليا", "australia"),
+        new("AustraliaSoutheast", "جنوب شرق أستراليا", "australia"),
+    };
+
+    public static string NormalizeRegion(string? value) =>
+        ServerRegions.Any(r => r.Value == value) ? value! : "default";
+
     /// <summary>Builds the ONE-SHOT onboarding seed: a document-created script that
     /// merges the chosen values into localStorage["BetterXcloud"] before the very first
     /// xbox.com navigation, and only ever runs once per profile (flag-guarded) so it can
     /// never overwrite choices the user makes later inside Better xCloud's own UI.</summary>
-    public static string BuildSeedScript(string quality, string gameLocale)
+    public static string BuildSeedScript(string quality, string gameLocale, string? region = null)
     {
         quality = NormalizeQuality(quality);
         gameLocale = NormalizeGameLocale(gameLocale);
+        var regionLine = region is not null && NormalizeRegion(region) != "default"
+            ? $"\n    cur[{Js(ServerRegionKey)}] = {Js(NormalizeRegion(region))};"
+            : "";
         return
 $@"(function () {{
   try {{
@@ -109,9 +148,9 @@ $@"(function () {{
     var KEY = {Js(GlobalStorageKey)};
     var cur = {{}};
     try {{ cur = JSON.parse(localStorage.getItem(KEY) || '{{}}') || {{}}; }} catch (e) {{ cur = {{}}; }}
-    cur[{Js(StreamQualityKey)}] = {Js(quality)};
-    cur[{Js(GameLocaleKey)}] = {Js(gameLocale)};
-    localStorage.setItem(KEY, JSON.stringify(cur));
+        cur[{Js(StreamQualityKey)}] = {Js(quality)};
+        cur[{Js(GameLocaleKey)}] = {Js(gameLocale)};{regionLine}
+        localStorage.setItem(KEY, JSON.stringify(cur));
     localStorage.setItem(FLAG, '1');
   }} catch (e) {{}}
 }})();";
@@ -120,13 +159,15 @@ $@"(function () {{
     /// <summary>Builds the LIVE apply script (Settings page): writes the given values into
     /// localStorage["BetterXcloud"] immediately and returns 'applied'. The page is then
     /// reloaded by the host so Better xCloud re-reads them at document-start.</summary>
-    public static string BuildApplyScript(string? quality, string? gameLocale)
+    public static string BuildApplyScript(string? quality, string? gameLocale, string? region = null)
     {
         var parts = new List<string>();
         if (quality is not null)
             parts.Add($"cur[{Js(StreamQualityKey)}] = {Js(NormalizeQuality(quality))};");
         if (gameLocale is not null)
             parts.Add($"cur[{Js(GameLocaleKey)}] = {Js(NormalizeGameLocale(gameLocale))};");
+        if (region is not null)
+            parts.Add($"cur[{Js(ServerRegionKey)}] = {Js(NormalizeRegion(region))};");
         var writes = string.Join("\n    ", parts);
         return
 $@"(function () {{
@@ -149,7 +190,8 @@ $@"(function () {{
     var cur = JSON.parse(localStorage.getItem({Js(GlobalStorageKey)}) || '{{}}') || {{}};
     return JSON.stringify({{
       q: cur[{Js(StreamQualityKey)}] || null,
-      l: cur[{Js(GameLocaleKey)}] || null
+      l: cur[{Js(GameLocaleKey)}] || null,
+      r: cur[{Js(ServerRegionKey)}] || null
     }});
   }} catch (e) {{ return '{{}}'; }}
 }})()";

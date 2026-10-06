@@ -11,7 +11,10 @@ namespace LatchiXcloud.Core.Services;
 public static class FirstRunFlow
 {
     public const string StepLanguage = "language";
-    public const string StepStream = "stream";
+    public const string StepQuality = "quality";
+    public const string StepServer = "server";
+    public const string StepGameLang = "gamelang";
+    public const string StepVpn = "vpn";
     public const string StepSignIn = "signin";
     public const string StepDone = "done";
 
@@ -20,8 +23,11 @@ public static class FirstRunFlow
 
     public static string Advance(string step) => step switch
     {
-        StepLanguage => StepStream,
-        StepStream => StepSignIn,
+        StepLanguage => StepQuality,
+        StepQuality => StepServer,
+        StepServer => StepGameLang,
+        StepGameLang => StepVpn,
+        StepVpn => StepSignIn,
         StepSignIn => StepDone,
         _ => StepDone
     };

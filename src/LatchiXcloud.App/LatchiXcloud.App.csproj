@@ -14,8 +14,8 @@
     <AssemblyName>LATCHI-xCLOUD</AssemblyName>
     <RootNamespace>LatchiXcloud.App</RootNamespace>
     <ApplicationIcon>..\..\assets\icon\latchi-xcloud.ico</ApplicationIcon>
-    <Version>1.1.0</Version>
-    <InformationalVersion>1.1.0</InformationalVersion>
+    <Version>1.2.0</Version>
+    <InformationalVersion>1.2.0</InformationalVersion>
     <Product>LATCHI xCLOUD</Product>
     <Company>LATCHI</Company>
     <Authors>LATCHI</Authors>

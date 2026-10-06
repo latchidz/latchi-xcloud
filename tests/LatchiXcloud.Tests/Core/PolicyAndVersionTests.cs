@@ -9,6 +9,7 @@ public class NavigationPolicyTests
     [InlineData("https://xbox.com/ar-DZ/play", true)]
     [InlineData("https://login.live.com/", true)]
     [InlineData("https://login.microsoftonline.com/oauth", true)]
+    [InlineData("https://login.microsoftonline-p.com/", true)]   // v1.2 §2: AAD backend channel of the MS auth chain
     [InlineData("https://account.live.com/summary", true)]
     [InlineData("https://aadcdn.msauth.net/thing.js", true)]
     [InlineData("https://account.xboxlive.com/x", true)]

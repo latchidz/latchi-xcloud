@@ -81,6 +81,10 @@ public partial class MainWindow : Window
         _host.MessageReceived += OnWebMessage;
         _host.NavigationBlocked += _ => ShowToast(Loc.S(_lang, "errBlockedNav"));
         _host.ProcessFailed += OnWebProcessFailed;
+        // v1.2 loading-state plumbing: overlay + brand panel + blank-page detector
+        _host.NavigationStarted += OnNavStarted;
+        _host.ContentLoaded += OnNavContentLoaded;
+        _host.NavigationDone += OnNavDone;
 
         try
         {
@@ -127,6 +131,95 @@ public partial class MainWindow : Window
         }
     }
 
+    /* ── v1.2 loading states: NEVER a silent blank screen ───────────── */
+
+    private bool _webShown;
+    private bool _emptyProbeScheduled;
+    private DispatcherTimer? _overlayHideTimer;
+    private DispatcherTimer? _emptyProbeTimer;
+
+    private void OnNavStarted(string uri)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            _emptyProbeScheduled = false; // a fresh navigation → probe its result page too
+            if (!_webShown)
+            {
+                _webShown = true;
+                BackPanel.Visibility = Visibility.Collapsed; // LATCHI brand panel steps aside
+                Web.Visibility = Visibility.Visible;
+            }
+            ShowLoadingOverlay(Loc.S(_lang, "loginLoading"));
+        });
+    }
+
+    private void OnNavContentLoaded()
+    {
+        Dispatcher.Invoke(() => HideLoadingOverlay()); // first content is on screen
+    }
+
+    private void OnNavDone(bool success)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            // success: give the renderer a beat, then hide; failure: hide + the error dialog
+            if (success)
+            {
+                _overlayHideTimer?.Stop();
+                _overlayHideTimer = new DispatcherTimer(DispatcherPriority.Normal) { Interval = TimeSpan.FromSeconds(1.5) };
+                _overlayHideTimer.Tick += (_, _) => { _overlayHideTimer.Stop(); HideLoadingOverlay(); };
+                _overlayHideTimer.Start();
+                ScheduleEmptyProbe();
+            }
+            else
+            {
+                HideLoadingOverlay();
+            }
+        });
+    }
+
+    private void ShowLoadingOverlay(string text)
+    {
+        LoadingText.Text = text;
+        LoadingSub.Text = _lang == "en" ? "official xbox.com page" : "صفحة xbox.com الرسمية";
+        LoadingPopup.Placement = System.Windows.Controls.Primitives.PlacementMode.Center;
+        LoadingPopup.PlacementTarget = Web;
+        LoadingPopup.IsOpen = true;
+        _overlayHideTimer?.Stop();
+    }
+
+    private void HideLoadingOverlay()
+    {
+        _overlayHideTimer?.Stop();
+        LoadingPopup.IsOpen = false;
+    }
+
+    /// <summary>Blank-page detector: if a SUCCESSFULLY loaded page still has zero
+    /// text and zero elements after 6 seconds, tell the user what that usually means
+    /// (xCloud not available in the current region) instead of leaving a dark void.</summary>
+    private void ScheduleEmptyProbe()
+    {
+        if (_emptyProbeScheduled) return;
+        _emptyProbeScheduled = true;
+        _emptyProbeTimer?.Stop();
+        _emptyProbeTimer = new DispatcherTimer(DispatcherPriority.Normal) { Interval = TimeSpan.FromSeconds(6) };
+        _emptyProbeTimer.Tick += async (_, _) =>
+        {
+            _emptyProbeTimer.Stop();
+            try
+            {
+                var empty = await _host.IsPageEmptyAsync();
+                if (empty == true)
+                {
+                    Logger.Warn("Blank page detected after successful navigation — likely region availability");
+                    ShowError(Loc.S(_lang, "emptyPageTitle"), Loc.S(_lang, "emptyPageDetail"));
+                }
+            }
+            catch { /* never nag on probe errors */ }
+        };
+        _emptyProbeTimer.Start();
+    }
+
     /* ── navigation watchdog: NEVER hang silently ────────────────────── */
 
     /// <summary>If the first navigation hasn't finished within 30s, surface an actionable
@@ -149,11 +242,13 @@ public partial class MainWindow : Window
 
     private void RunFirstRunWizard()
     {
+        BackStatus.Text = _lang == "en" ? "First-run setup…" : "الإعداد الأول جارٍ…";
         var wizard = new FirstRunWindow { Owner = this };
         wizard.ShowDialog();
         var s = _settings.Current;
         s.Language = wizard.SelectedLanguage;
         s.BxcStreamQuality = Core.Services.BxcSettings.NormalizeQuality(wizard.SelectedStreamQuality);
+        s.BxcServerRegion = Core.Services.BxcSettings.NormalizeRegion(wizard.SelectedServerRegion);
         s.BxcGameLanguage = Core.Services.BxcSettings.NormalizeGameLocale(wizard.SelectedGameLanguage);
         if (s.Language != _lang)
         {
@@ -175,7 +270,7 @@ public partial class MainWindow : Window
 
         try
         {
-            _host.SeedBxcSettingsAsync(s.BxcStreamQuality, s.BxcGameLanguage).GetAwaiter().GetResult();
+            _host.SeedBxcSettingsAsync(s.BxcStreamQuality, s.BxcGameLanguage, s.BxcServerRegion).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -186,7 +281,7 @@ public partial class MainWindow : Window
         {
             _awaitingSignIn = true;
             _firstRunStep = Core.Services.FirstRunFlow.StepSignIn;
-            _host.GoHome(); // first open of the site — sign-in page in front of the user
+            _host.GoHome(); // first open of the site — sign-in happens on the REAL page
             StartNavWatchdog();
         }
         else
@@ -482,30 +577,31 @@ public partial class MainWindow : Window
 
     private void OpenSettings(bool updateTab)
     {
-        var before = (_settings.Current.BxcStreamQuality, _settings.Current.BxcGameLanguage);
+        var before = (_settings.Current.BxcStreamQuality, _settings.Current.BxcGameLanguage, _settings.Current.BxcServerRegion);
         var win = new SettingsWindow(this, _settings, _bxc, _host) { Owner = this };
         if (updateTab) win.FocusUpdateSection();
         win.ShowDialog();
 
         // stream settings changed → write them into the SAME store Better xCloud reads
         // (localStorage["BetterXcloud"]) and reload the page so BxC re-reads them live
-        var after = (_settings.Current.BxcStreamQuality, _settings.Current.BxcGameLanguage);
+        var s = _settings.Current;
+        var after = (s.BxcStreamQuality, s.BxcGameLanguage, s.BxcServerRegion);
         if (after != before && _host.Core is not null)
         {
-            _ = ApplyBxcChangesAsync(after.BxcStreamQuality, after.BxcGameLanguage);
+            _ = ApplyBxcChangesAsync(after.BxcStreamQuality, after.BxcGameLanguage, after.BxcServerRegion);
         }
 
         if (_settings.Current.StartFullscreen && !_hostFullscreen) EnterHostFullscreen();
     }
 
-    private async Task ApplyBxcChangesAsync(string quality, string gameLang)
+    private async Task ApplyBxcChangesAsync(string quality, string gameLang, string region)
     {
         try
         {
             var url = _host.Core?.Source?.ToString() ?? "";
             if (url.Contains("xbox.com", StringComparison.Ordinal))
             {
-                if (await _host.ApplyBxcSettingsAsync(quality, gameLang))
+                if (await _host.ApplyBxcSettingsAsync(quality, gameLang, region))
                 {
                     _host.Reload();
                     ShowToast(_lang == "en"
@@ -523,7 +619,7 @@ public partial class MainWindow : Window
             {
                 // not on the xbox origin yet (e.g. first run before navigation):
                 // register the seed for the next navigation
-                await _host.SeedBxcSettingsAsync(quality, gameLang);
+                await _host.SeedBxcSettingsAsync(quality, gameLang, region);
             }
         }
         catch (Exception ex)
@@ -640,6 +736,8 @@ public partial class MainWindow : Window
         CancelProbe();
         _toastTimer?.Stop();
         _exitFsTimer?.Stop();
+        _overlayHideTimer?.Stop();
+        _emptyProbeTimer?.Stop();
         try
         {
             var s = _settings.Current;

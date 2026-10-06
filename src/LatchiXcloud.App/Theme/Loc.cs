@@ -18,6 +18,34 @@ public static class Loc
         ["wizardSignInOpen"] = ("تسجيل الدخول الآن", "Sign in now"),
         ["wizardSkip"] = ("تخطّي الآن", "Skip for now"),
         ["wizardStreamTitle"] = ("إعدادات البث", "Stream settings"),
+        ["wizardQualityTitle"] = ("جودة البث", "Stream quality"),
+        ["wizardQualityDetail"] = (
+            "تُطبَّق على Better xCloud قبل فتح الموقع — تلقائي موصى به للأجهزة الضعيفة.",
+            "Applied to Better xCloud before the site opens — Auto is best for low-end devices."),
+        ["wizardServerTitle"] = ("الخادم / المنطقة", "Server / region"),
+        ["wizardServerDetail"] = (
+            "تلقائي يختار أقرب خادم. من فرنسا يمكنك اختيار «غرب أوروبا» لأفضل بنغ مع الجزائر.",
+            "Auto picks the nearest server. From France you can pick West Europe for the best latency to Algeria."),
+        ["wizardGameLangTitle"] = ("لغة الألعاب", "Game language"),
+        ["wizardGameLangDetail"] = (
+            "لغة محتوى الألعاب — مستقلة تماماً عن لغة واجهة التطبيق.",
+            "The games' content language — completely independent from the app UI language."),
+        ["wizardVpnTitle"] = ("مساعد الاتصال (اختياري)", "Connection helper (optional)"),
+        ["wizardVpnDetail"] = (
+            "Xbox Cloud Gaming غير متوفر في كل البلدان. إن احتجت اتصالاً من منطقة مدعومة (فرنسا مثلاً) شغّل Planet VPN من هنا ثم تحقق من الحالة. التطبيق يعمل بلا VPN وكل شيء واضح أمامك — لا توجيه خفي أبداً.",
+            "Xbox Cloud Gaming is not available in every country. If you need a supported region (e.g. France), launch Planet VPN here and check the status. The app works without a VPN and nothing is ever routed secretly."),
+        ["wizardVpnOpen"] = ("فتح Planet VPN", "Open Planet VPN"),
+        ["wizardVpnCheck"] = ("فحص الحالة", "Check status"),
+        ["vpnNotInstalled"] = (
+            "لم يُعثر على Planet VPN مثبتاً على هذا الجهاز.\nثبّته من موقعه الرسمي freevpnplanet.com ثم ارجع لهنا — لا نقوم بأي تثبيت نيابة عنك.",
+            "Planet VPN is not installed on this PC.\nInstall it from the official site freevpnplanet.com, then come back — we never install anything for you."),
+        ["vpnStatusConnected"] = ("ال VPN: متصل", "VPN: connected"),
+        ["vpnStatusInstalledNotConnected"] = (
+            "ال VPN: غير متصل — Planet VPN مثبت، افتحه واتصل يدوياً ثم افحص الحالة.",
+            "VPN: not connected — Planet VPN is installed; open it, connect manually, then check again."),
+        ["vpnStatusNotInstalled"] = (
+            "Planet VPN غير مثبت — يمكنك المتابعة بدون VPN.",
+            "Planet VPN is not installed — you can continue without a VPN."),
         ["wizardStreamDetail"] = (
             "تُطبَّق على Better xCloud قبل فتح الموقع. يمكنك تغييرها لاحقاً من الإعدادات.",
             "Applied to Better xCloud before the site opens. You can change them later in Settings."),
@@ -29,6 +57,11 @@ public static class Loc
         ["wizardRegionNote"] = (
             "الخادم/المنطقة: تلقائي — قائمة الخوادم المتاحة فعلياً تُعرض داخل إعدادات Better xCloud بواجهة xCloud لأنها تُجلب مباشرة من الخدمة.",
             "Server/region: Auto — the actual list of available servers is shown inside Better xCloud's settings in the xCloud UI, because it is fetched live from the service."),
+        ["loginLoading"] = ("جارٍ تحميل صفحة Microsoft…", "Loading the Microsoft page…"),
+        ["emptyPageTitle"] = ("الصفحة لا تعرض أي محتوى", "The page is showing no content"),
+        ["emptyPageDetail"] = (
+            "اكتمل التحميل لكن الصفحة فارغة. السبب الأكثر شيوعاً: Xbox Cloud Gaming غير متوفر من موقعك الجغرافي الحالي — جرّب الاتصال من منطقة مدعومة (فرنسا مثلاً عبر VPN) ثم أعد المحاولة، أو راجع التشخيصات.",
+            "Loading finished but the page is empty. The most common cause: Xbox Cloud Gaming is not available from your current location — connect from a supported region (e.g. France via VPN) and retry, or check Diagnostics."),
         ["wizardNext"] = ("متابعة", "Continue"),
         ["wizardBack"] = ("رجوع", "Back"),
         ["welcomeSaved"] = ("تم تسجيل الدخول وحفظ جلستك — أهلاً بك!", "Signed in and session saved — welcome!"),

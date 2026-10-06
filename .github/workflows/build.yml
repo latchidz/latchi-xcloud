@@ -35,7 +35,7 @@ jobs:
       - name: Build (Release)
         run: dotnet build -c Release
 
-      - name: Unit tests (Core — 83 tests)
+      - name: Unit tests (Core — 89 tests)
         run: dotnet test -c Release --no-build --logger "console;verbosity=normal"
 
       - name: Publish (win-x64, self-contained, ReadyToRun)

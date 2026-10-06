@@ -8,12 +8,16 @@
         Background="{StaticResource BrushBg}"
         FontFamily="{StaticResource AppFont}">
 
-    <!-- v1.1 first-run wizard (separate window → its own HWND, no WebView2 airspace issues).
-         Step 1: language · Step 2: stream setup (the REAL Better xCloud values —
-         applied before the Xbox site is ever opened) · Step 3: Microsoft sign-in. -->
+    <!-- v1.2 first-run wizard (own HWND, no WebView2 airspace issues).
+         §9 order: 1 language · 2 quality · 3 server/region · 4 game language ·
+         5 optional connection helper (VPN) · 6 Microsoft sign-in.
+         The Xbox site is NEVER opened before configuration completes. -->
 
     <Border BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="10" Margin="8" ClipToBounds="True">
         <StackPanel Margin="26">
+
+            <TextBlock x:Name="StepIndicator" Text="١ / ٦" Foreground="{StaticResource BrushGold}" FontSize="11"
+                       HorizontalAlignment="Center" Margin="0,0,0,10"/>
 
             <!-- ═══ step 1: choose language ═══ -->
             <StackPanel x:Name="StepLanguage">
@@ -40,42 +44,86 @@
                 </Grid>
             </StackPanel>
 
-            <!-- ═══ step 2: stream setup (real Better xCloud values) ═══ -->
-            <StackPanel x:Name="StepStream" Visibility="Collapsed">
+            <!-- ═══ step 2: stream quality (REAL Better xCloud values) ═══ -->
+            <StackPanel x:Name="StepQuality" Visibility="Collapsed">
                 <Path Data="{x:Static th:Icons.Gamepad}" Stroke="{StaticResource BrushGreen}" StrokeThickness="1.5"
                       Fill="Transparent" Width="40" Height="40" Stretch="Uniform"
                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                       HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                <TextBlock x:Name="StreamTitle" Text="إعدادات البث" FontSize="19" FontWeight="Bold"
-                           Foreground="{StaticResource BrushText}" HorizontalAlignment="Center" Margin="0,14,0,0"/>
-                <TextBlock x:Name="StreamDetail" Text="تُطبَّق على Better xCloud قبل فتح الموقع. يمكنك تغييرها لاحقاً من الإعدادات."
-                           FontSize="11.5" Foreground="{StaticResource BrushMuted}" HorizontalAlignment="Center"
-                           Margin="0,6,0,16" TextWrapping="Wrap" TextAlignment="Center"/>
-
-                <TextBlock x:Name="LblQuality" Text="جودة / دقة البث:" Style="{StaticResource FieldLabel}" Margin="0,0,0,4"/>
-                <ComboBox x:Name="CmbQuality" Height="34" FontSize="13" SelectionChanged="CmbQuality_SelectionChanged"/>
-
-                <TextBlock x:Name="LblGameLang" Text="لغة الألعاب (لغة المحتوى):" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/>
-                <ComboBox x:Name="CmbGameLang" Height="34" FontSize="13"/>
-
-                <TextBlock x:Name="LblGameLangNote" FontSize="10.5" Foreground="{StaticResource BrushMuted}"
-                           Text="مستقلة عن لغة واجهة التطبيق — مثال: واجهة عربية وألعاب إنجليزية."
-                           TextWrapping="Wrap" Margin="0,5,0,0"/>
-
-                <Border Background="{StaticResource BrushPanel2}" CornerRadius="8" Padding="10" Margin="0,14,0,0">
-                    <TextBlock x:Name="LblRegionNote" FontSize="10.5" Foreground="{StaticResource BrushMuted}" TextWrapping="Wrap" LineHeight="17"
-                               Text="الخادم/المنطقة: تلقائي — القائمة الحقيقية للخوادم المتاحة تُعرض داخل إعدادات Better xCloud بواجهة xCloud لأنها تأتي مباشرة من الخدمة."/>
-                </Border>
-
-                <Button Style="{StaticResource GoldBtn}" x:Name="BtnStreamNext" FontSize="14" Height="44" Margin="0,16,0,0"
-                        Content="متابعة" Click="BtnStreamNext_Click"/>
-                <Button Style="{StaticResource GhostBtn}" x:Name="BtnStreamBack" Margin="0,10,0,0"
-                        Content="رجوع" Click="BtnStreamBack_Click"/>
+                <TextBlock x:Name="QualityTitle" Text="جودة البث" FontSize="19" FontWeight="Bold"
+                           Foreground="{StaticResource BrushText}" HorizontalAlignment="Center" Margin="0,14,0,4"/>
+                <TextBlock x:Name="QualityDetail" Text="" FontSize="11.5" Foreground="{StaticResource BrushMuted}"
+                           HorizontalAlignment="Center" Margin="0,6,0,16" TextWrapping="Wrap" TextAlignment="Center"/>
+                <ComboBox x:Name="CmbQuality" Height="34" FontSize="13"/>
+                <Button Style="{StaticResource GoldBtn}" x:Name="BtnQualityNext" FontSize="14" Height="42" Margin="0,16,0,0"
+                        Content="متابعة" Click="BtnQualityNext_Click"/>
+                <Button Style="{StaticResource GhostBtn}" x:Name="BtnQualityBack" Margin="0,10,0,0"
+                        Content="رجوع" Click="BtnQualityBack_Click"/>
             </StackPanel>
 
-            <!-- ═══ step 3: Microsoft sign-in ═══ -->
-            <StackPanel x:Name="StepSignIn" Visibility="Collapsed">
+            <!-- ═══ step 3: server / region (from the script's own server table) ═══ -->
+            <StackPanel x:Name="StepServer" Visibility="Collapsed">
                 <Path Data="{x:Static th:Icons.Globe}" Stroke="{StaticResource BrushGold}" StrokeThickness="1.5"
+                      Fill="Transparent" Width="40" Height="40" Stretch="Uniform"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                      HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                <TextBlock x:Name="ServerTitle" Text="الخادم / المنطقة" FontSize="19" FontWeight="Bold"
+                           Foreground="{StaticResource BrushText}" HorizontalAlignment="Center" Margin="0,14,0,4"/>
+                <TextBlock x:Name="ServerDetail" Text="" FontSize="11.5" Foreground="{StaticResource BrushMuted}"
+                           HorizontalAlignment="Center" Margin="0,6,0,16" TextWrapping="Wrap" TextAlignment="Center"/>
+                <ComboBox x:Name="CmbServer" Height="34" FontSize="13"/>
+                <Button Style="{StaticResource GoldBtn}" x:Name="BtnServerNext" FontSize="14" Height="42" Margin="0,16,0,0"
+                        Content="متابعة" Click="BtnServerNext_Click"/>
+                <Button Style="{StaticResource GhostBtn}" x:Name="BtnServerBack" Margin="0,10,0,0"
+                        Content="رجوع" Click="BtnServerBack_Click"/>
+            </StackPanel>
+
+            <!-- ═══ step 4: game language (independent from app language) ═══ -->
+            <StackPanel x:Name="StepGameLang" Visibility="Collapsed">
+                <Path Data="{x:Static th:Icons.Globe}" Stroke="{StaticResource BrushGreen}" StrokeThickness="1.5"
+                      Fill="Transparent" Width="40" Height="40" Stretch="Uniform"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                      HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                <TextBlock x:Name="GameLangTitle" Text="لغة الألعاب" FontSize="19" FontWeight="Bold"
+                           Foreground="{StaticResource BrushText}" HorizontalAlignment="Center" Margin="0,14,0,4"/>
+                <TextBlock x:Name="GameLangDetail" Text="" FontSize="11.5" Foreground="{StaticResource BrushMuted}"
+                           HorizontalAlignment="Center" Margin="0,6,0,16" TextWrapping="Wrap" TextAlignment="Center"/>
+                <ComboBox x:Name="CmbGameLang" Height="34" FontSize="13"/>
+                <Button Style="{StaticResource GoldBtn}" x:Name="BtnGameLangNext" FontSize="14" Height="42" Margin="0,16,0,0"
+                        Content="متابعة" Click="BtnGameLangNext_Click"/>
+                <Button Style="{StaticResource GhostBtn}" x:Name="BtnGameLangBack" Margin="0,10,0,0"
+                        Content="رجوع" Click="BtnGameLangBack_Click"/>
+            </StackPanel>
+
+            <!-- ═══ step 5: optional connection helper (external VPN) ═══ -->
+            <StackPanel x:Name="StepVpn" Visibility="Collapsed">
+                <Path Data="{x:Static th:Icons.Cloud}" Stroke="{StaticResource BrushGold}" StrokeThickness="1.5"
+                      Fill="Transparent" Width="40" Height="40" Stretch="Uniform"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                      HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                <TextBlock x:Name="VpnTitle" Text="مساعد الاتصال (اختياري)" FontSize="19" FontWeight="Bold"
+                           Foreground="{StaticResource BrushText}" HorizontalAlignment="Center" Margin="0,14,0,4"/>
+                <TextBlock x:Name="VpnDetail" Text="" FontSize="11.5" Foreground="{StaticResource BrushMuted}"
+                           HorizontalAlignment="Center" Margin="0,6,0,14" TextWrapping="Wrap" TextAlignment="Center"/>
+                <Border Background="{StaticResource BrushPanel2}" CornerRadius="8" Padding="12">
+                    <StackPanel>
+                        <TextBlock x:Name="TxtVpnStatus" Text="…" FontSize="13"
+                                   Foreground="{StaticResource BrushText}" HorizontalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">
+                            <Button x:Name="BtnVpnOpen" Style="{StaticResource GhostBtn}" Content="فتح Planet VPN" Click="BtnVpnOpen_Click"/>
+                            <Button x:Name="BtnVpnCheck" Style="{StaticResource GhostBtn}" Content="فحص الحالة" Margin="10,0,0,0" Click="BtnVpnCheck_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                <Button Style="{StaticResource GoldBtn}" x:Name="BtnVpnNext" FontSize="14" Height="42" Margin="0,16,0,0"
+                        Content="متابعة" Click="BtnVpnNext_Click"/>
+                <Button Style="{StaticResource GhostBtn}" x:Name="BtnVpnBack" Margin="0,10,0,0"
+                        Content="رجوع" Click="BtnVpnBack_Click"/>
+            </StackPanel>
+
+            <!-- ═══ step 6: Microsoft sign-in ═══ -->
+            <StackPanel x:Name="StepSignIn" Visibility="Collapsed">
+                <Path Data="{x:Static th:Icons.Gamepad}" Stroke="{StaticResource BrushGreen}" StrokeThickness="1.5"
                       Fill="Transparent" Width="40" Height="40" Stretch="Uniform"
                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                       HorizontalAlignment="Center" Margin="0,2,0,0"/>

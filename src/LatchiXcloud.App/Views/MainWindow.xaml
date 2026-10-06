@@ -52,9 +52,10 @@
                                FontSize="12.5" VerticalAlignment="Center" Margin="8,0,0,0"/>
                 </StackPanel>
 
-                <!-- Better xCloud status chip -->
+                <!-- Better xCloud status chip (clickable — exempted from the caption drag area) -->
                 <Border Grid.Column="1" x:Name="ChipBxc" Style="{StaticResource StatusChip}" Margin="12,0,0,0"
                         VerticalAlignment="Center" Cursor="Hand" MouseLeftButtonUp="ChipBxc_Click"
+                        WindowChrome.IsHitTestVisibleInChrome="True"
                         ToolTip="Better xCloud">
                     <StackPanel Orientation="Horizontal">
                         <Ellipse x:Name="ChipDot" Width="7" Height="7" Fill="{StaticResource BrushMuted}"
@@ -64,8 +65,10 @@
                     </StackPanel>
                 </Border>
 
-                <!-- toolbar -->
-                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- toolbar — EVERY button must be mouse-clickable: the whole bar is exempted
+                     from the WindowChrome caption drag area (v1.2 mouse fix) -->
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
                     <Button x:Name="BtnHome" Style="{StaticResource BarBtn}" Tag="{x:Static th:Icons.Home}" Click="BtnHome_Click"/>
                     <Button x:Name="BtnReload" Style="{StaticResource BarBtn}" Tag="{x:Static th:Icons.Reload}" Click="BtnReload_Click"/>
                     <Button x:Name="BtnFullscreen" Style="{StaticResource BarBtn}" Tag="{x:Static th:Icons.Fullscreen}" Click="BtnFullscreen_Click"/>
@@ -83,7 +86,54 @@
             </Grid>
 
             <!-- ═══════════ CONTENT ═══════════ -->
-            <wv:WebView2 x:Name="Web" Grid.Row="1" DefaultBackgroundColor="#0A0D14"/>
+            <!-- v1.2: the LATCHI brand panel is the visible face of the app until the
+                 FIRST navigation starts — the user is never left staring at a bare
+                 webview. It is plain WPF and renders because the WebView is Collapsed
+                 until then (HwndHost airspace rules). -->
+            <Grid Grid.Row="1">
+                <StackPanel x:Name="BackPanel" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Path Data="{x:Static th:Icons.Cloud}" Stroke="{StaticResource BrushGold}" StrokeThickness="1.6"
+                          Fill="Transparent" Width="72" Height="72" Stretch="Uniform"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                          HorizontalAlignment="Center" Margin="0,0,0,18"/>
+                    <TextBlock x:Name="BackTitle" Text="LATCHI xCLOUD" FontSize="26" FontWeight="Bold"
+                               Foreground="{StaticResource BrushText}" HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="BackStatus" Text="جاهز — أكمل الإعداد الأول للبدء"
+                               FontSize="13" Foreground="{StaticResource BrushMuted}" HorizontalAlignment="Center"
+                               Margin="0,10,0,0"/>
+                </StackPanel>
+                <wv:WebView2 x:Name="Web" Grid.Row="0" DefaultBackgroundColor="#0A0D14" Visibility="Collapsed"/>
+            </Grid>
+
+            <!-- loading overlay — a Popup (own HWND) renders ABOVE the WebView2:
+                 "Loading the Microsoft page…" with a soft pulsing icon. Never a
+                 silent blank screen again. -->
+            <Popup x:Name="LoadingPopup" AllowsTransparency="True" StaysOpen="True" Placement="Relative"
+                   PlacementTarget="{Binding ElementName=Web}" IsOpen="False">
+                <Border Background="#F20E1320" CornerRadius="12" Padding="34,26" BorderBrush="{StaticResource BrushBorder}" BorderThickness="1">
+                    <StackPanel>
+                        <Path x:Name="LoadingIcon" Data="{x:Static th:Icons.Cloud}" Stroke="{StaticResource BrushGold}"
+                              StrokeThickness="1.6" Fill="Transparent" Width="34" Height="34" Stretch="Uniform"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                              HorizontalAlignment="Center">
+                            <Path.Triggers>
+                                <EventTrigger RoutedEvent="Loaded">
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.25"
+                                                             Duration="0:0:0.7" AutoReverse="True" RepeatBehavior="Forever"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </Path.Triggers>
+                        </Path>
+                        <TextBlock x:Name="LoadingText" Text="…" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{StaticResource BrushText}" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+                        <TextBlock x:Name="LoadingSub" Text="" FontSize="11" Foreground="{StaticResource BrushMuted}"
+                                   HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                    </StackPanel>
+                </Border>
+            </Popup>
 
             <!-- transient chips — Popups (own HWND) so they render above the WebView2 -->
             <Popup x:Name="ExitFsPopup" AllowsTransparency="True" StaysOpen="False" Placement="Relative" PlacementTarget="{Binding ElementName=Web}">

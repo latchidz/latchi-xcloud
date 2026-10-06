@@ -57,13 +57,31 @@
                         <ComboBox x:Name="CmbQuality" Width="240" Height="30" FontSize="12.5"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock Text="الخادم / المنطقة:" Style="{StaticResource FieldLabel}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="CmbServer" Width="240" Height="30" FontSize="12.5"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                         <TextBlock Text="لغة الألعاب:" Style="{StaticResource FieldLabel}" Margin="0,0,10,0" VerticalAlignment="Center"/>
                         <ComboBox x:Name="CmbGameLang" Width="240" Height="30" FontSize="12.5"/>
                     </StackPanel>
                     <TextBlock x:Name="TxtBxcLive" Text="— القيم الحالية الفعلية داخل Better xCloud —"
                                Foreground="{StaticResource BrushMuted}" FontSize="10.5" TextWrapping="Wrap" Margin="0,8,0,0"/>
-                    <TextBlock Text="مستقلة عن لغة واجهة التطبيق. الخادم/المنطقة: تلقائي — قائمة الخوادم المتاحة فعلياً داخل إعدادات Better xCloud بواجهة xCloud. التغييرات تُطبَّق فوراً على نفس قيم Better xCloud."
+                    <TextBlock Text="لغة الألعاب مستقلة عن لغة واجهة التطبيق. «تلقائي» = أقرب خادم؛ القائمة الحية الكاملة (مع أي خادم جديد) داخل إعدادات Better xCloud بواجهة xCloud. التغييرات تُطبَّق فوراً على نفس قيم Better xCloud."
                                Foreground="{StaticResource BrushMuted}" FontSize="10.5" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- ═══ Connection helper (external VPN — optional, never forced) ═══ -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="مساعد الاتصال (Planet VPN — اختياري)" Style="{StaticResource SectionTitle}"/>
+                    <TextBlock x:Name="TxtVpnStatus" Text="…" FontSize="12" Foreground="{StaticResource BrushText}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <Button x:Name="BtnVpnOpen" Style="{StaticResource GhostBtn}" Content="فتح Planet VPN" Click="BtnVpnOpen_Click"/>
+                        <Button x:Name="BtnVpnCheck" Style="{StaticResource GhostBtn}" Content="فحص الحالة" Margin="10,0,0,0" Click="BtnVpnCheck_Click"/>
+                    </StackPanel>
+                    <TextBlock Text="تكامل خارجي فقط: نكتشف العميل ونفتحه ونعرض حالة الواجهة — لا تثبيت صامت ولا توجيه خفي للبيانات ولا لمس لبروتوكولاته. التطبيق يعمل كاملاً بدونه. تحتاج فرنسا؟ افتح العميل واتصل ثم تحقق."
+                               Foreground="{StaticResource BrushMuted}" FontSize="10.5" TextWrapping="Wrap" Margin="0,8,0,0"/>
                 </StackPanel>
             </Border>
 

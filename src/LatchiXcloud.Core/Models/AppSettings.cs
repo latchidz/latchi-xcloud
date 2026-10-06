@@ -18,6 +18,7 @@ public sealed class AppSettings
     // App UI language is separate from the game language by design.
     public string BxcStreamQuality { get; set; } = "auto";     // auto|720p|1080p|1080p-hq
     public string BxcGameLanguage { get; set; } = "default";   // default|<BxC stream.locale value>
+    public string BxcServerRegion { get; set; } = "default";   // default|<BxC server.region value> (v1.2)
 
     // Performance
     public bool LowEndMode { get; set; } = false;          // 4 GB RAM profile
